@@ -1,6 +1,5 @@
 package br.com.jmarcos.assessment_task.model;
 
-import java.sql.Date;
 import java.time.LocalDate;
 import java.util.Set;
 

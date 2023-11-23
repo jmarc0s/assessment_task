@@ -1,6 +1,6 @@
 package br.com.jmarcos.assessment_task.model.enums;
 
-public enum SchoolSegment {
+public enum SchoolSegmentEnum {
     FIRSTCHILDISH,
     SECONDCHILDISH,
     THIRDCHILDISH,

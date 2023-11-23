@@ -10,11 +10,10 @@ import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
 import br.com.jmarcos.assessment_task.model.enums.ClassStatusEnum;
-import br.com.jmarcos.assessment_task.model.enums.SchoolSegment;
+import br.com.jmarcos.assessment_task.model.enums.SchoolSegmentEnum;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -46,7 +45,10 @@ public class Class {
     private Set<String> teacherAssistents;
 
     @Enumerated(EnumType.STRING)
-    private SchoolSegment schoolSegment;
+    private SchoolSegmentEnum schoolSegment;
+
+    @Column(name = "students_id")
+    private int maxStudents;
 
     //private Set<Student> students;
 }
