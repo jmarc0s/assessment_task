@@ -6,6 +6,7 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 
+import br.com.jmarcos.assessment_task.model.enums.ClassShiftEnum;
 import br.com.jmarcos.assessment_task.model.enums.ClassStatusEnum;
 import br.com.jmarcos.assessment_task.model.enums.SchoolSegmentEnum;
 import lombok.Getter;
@@ -32,6 +33,8 @@ public class ClassRequestDTO {
     @NotNull
     private SchoolSegmentEnum schoolSegment;
 
+    private ClassShiftEnum classShift;
+    
     @NotNull
     @Positive
     private int maxStudents;

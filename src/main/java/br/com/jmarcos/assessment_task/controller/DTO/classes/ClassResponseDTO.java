@@ -2,6 +2,7 @@ package br.com.jmarcos.assessment_task.controller.DTO.classes;
 
 import java.util.Set;
 
+import br.com.jmarcos.assessment_task.model.enums.ClassShiftEnum;
 import br.com.jmarcos.assessment_task.model.enums.ClassStatusEnum;
 import br.com.jmarcos.assessment_task.model.enums.SchoolSegmentEnum;
 import lombok.Getter;
@@ -24,6 +25,8 @@ public class ClassResponseDTO {
     private Set<String> teacherAssistents;
 
     private SchoolSegmentEnum schoolSegment;
+
+    private ClassShiftEnum classShift;
 
     private int maxStudents;
 }

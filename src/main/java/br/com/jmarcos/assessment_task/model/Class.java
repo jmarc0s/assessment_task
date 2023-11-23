@@ -12,6 +12,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
+import br.com.jmarcos.assessment_task.model.enums.ClassShiftEnum;
 import br.com.jmarcos.assessment_task.model.enums.ClassStatusEnum;
 import br.com.jmarcos.assessment_task.model.enums.SchoolSegmentEnum;
 import lombok.AllArgsConstructor;
@@ -49,6 +50,9 @@ public class Class {
 
     @Column(name = "students_id")
     private int maxStudents;
+
+    private ClassShiftEnum classShift;
+    
 
     //private Set<Student> students;
 }
