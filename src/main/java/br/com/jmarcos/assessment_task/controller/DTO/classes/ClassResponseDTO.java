@@ -1,7 +1,6 @@
 package br.com.jmarcos.assessment_task.controller.DTO.classes;
 
 import java.util.Set;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import br.com.jmarcos.assessment_task.model.Class;

@@ -5,6 +5,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import br.com.jmarcos.assessment_task.controller.DTO.classes.ClassRequestDTO;
@@ -25,6 +27,12 @@ public class ClassService {
         this.classRepository = classRepository;
         this.studentService = studentService;
     }
+
+
+    public Page<Class> search(Pageable pageable) {
+        return this.classRepository.findAll(pageable);
+    }
+
 
     public Class save(ClassRequestDTO classRequest) {
         Class newClass = this.toClass(classRequest);
@@ -78,7 +86,7 @@ public class ClassService {
 
     private Student validateStudent(Long studentId) {
         Student student = this.studentService.findById(studentId);
-        
+
         if(!Objects.equals(student.getClassId(), null)){
             throw new ConflictException("This student is already allocated to another class");
         }

@@ -7,12 +7,15 @@ import org.springframework.web.util.UriComponentsBuilder;
 import br.com.jmarcos.assessment_task.controller.DTO.classes.ClassRequestDTO;
 import br.com.jmarcos.assessment_task.controller.DTO.classes.ClassResponseDTO;
 import br.com.jmarcos.assessment_task.service.ClassService;
+import jakarta.validation.Valid;
 
 import java.net.URI;
 
-import javax.validation.Valid;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -29,6 +32,12 @@ public class ClassController {
     }
 
 
+    @GetMapping
+    public Page<ClassResponseDTO> search(Pageable pageable){
+        return this.classService
+                .search(pageable)
+                .map(ClassResponseDTO::new);
+    }
     
     @PostMapping
     public ResponseEntity<ClassResponseDTO> save(@RequestBody @Valid ClassRequestDTO classRequest, UriComponentsBuilder uriBuilder) {                          
