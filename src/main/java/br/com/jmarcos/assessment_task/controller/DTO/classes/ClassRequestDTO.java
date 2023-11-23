@@ -16,26 +16,23 @@ import lombok.Setter;
 @Setter
 public class ClassRequestDTO {
 
-
     @NotBlank
     @NotNull
     private String title;
 
     private String teacherHolder;
 
-    private Set<String> teacherAssistents;
-
     private Set<Long> studentsId;
 
     @NotNull
-    private ClassStatusEnum ClassStatus;
+    private ClassStatusEnum classStatus;
 
     @NotNull
     private SchoolSegmentEnum schoolSegment;
 
     private ClassShiftEnum classShift;
     
-    @NotNull
-    @Positive
     private int maxStudents;
+
+
 }

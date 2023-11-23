@@ -28,7 +28,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Student {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -54,4 +54,7 @@ public class Student {
     @JoinColumn(name = "class_id")
     private Class classId;
 
+    public Student(Long studentId) {
+        this.id = studentId;
+    }
 }

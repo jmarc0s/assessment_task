@@ -56,7 +56,7 @@ public class HandlerExceptionConfig {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ExceptionDetails> handlerHttpMessageNotReadableException(
             HttpMessageNotReadableException exception) {
-        ExceptionDetails details = new ExceptionDetails("Bad request. syntax error",
+        ExceptionDetails details = new ExceptionDetails("Bad Request. Syntax error",
                 exception.getMessage(),
                 HttpStatus.BAD_REQUEST.value());
 

@@ -3,14 +3,16 @@ package br.com.jmarcos.assessment_task.model;
 import java.util.Set;
 
 import javax.persistence.Column;
-import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
+
 
 import br.com.jmarcos.assessment_task.model.enums.ClassShiftEnum;
 import br.com.jmarcos.assessment_task.model.enums.ClassStatusEnum;
@@ -42,9 +44,6 @@ public class Class {
     @Column(name = "teacher_holder_name")
     private String teacherHolder;
 
-    @ElementCollection
-    private Set<String> teacherAssistents;
-
     @Enumerated(EnumType.STRING)
     private SchoolSegmentEnum schoolSegment;
 
@@ -54,5 +53,6 @@ public class Class {
     private ClassShiftEnum classShift;
     
 
-    //private Set<Student> students;
+    @OneToMany(mappedBy = "classId", fetch = FetchType.LAZY)
+    private Set<Student> students;
 }
