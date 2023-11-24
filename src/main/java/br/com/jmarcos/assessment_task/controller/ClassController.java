@@ -7,6 +7,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 import br.com.jmarcos.assessment_task.controller.DTO.classes.ClassRequestDTO;
 import br.com.jmarcos.assessment_task.controller.DTO.classes.ClassResponseDTO;
 import br.com.jmarcos.assessment_task.service.ClassService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 
 import java.net.URI;
@@ -16,6 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -23,6 +27,7 @@ import br.com.jmarcos.assessment_task.model.Class;
 
 @RestController
 @RequestMapping("/classes")
+//@SecurityRequirement(name = "Authorization")
 public class ClassController {
 
     private final ClassService classService;
@@ -31,6 +36,10 @@ public class ClassController {
         this.classService = classService;
     }
 
+    @Operation(summary = "Returns a list of classes", description = "Returns a list of all classes in database.", responses = {
+                    @ApiResponse(responseCode = "200", description = "list returned successfully"),
+                    @ApiResponse(responseCode = "403", description = "access denied")
+    })
 
     @GetMapping
     public Page<ClassResponseDTO> search(Pageable pageable){
@@ -39,6 +48,28 @@ public class ClassController {
                 .map(ClassResponseDTO::new);
     }
     
+
+    @Operation(summary = "returns a class by id", description = "returns class by the specified id", responses = {
+        @ApiResponse(responseCode = "200", description = "class returned successfully"),
+        @ApiResponse(responseCode = "400", description = "the submitted id is not a number"),
+        @ApiResponse(responseCode = "403", description = "access denied"),
+        @ApiResponse(responseCode = "404", description = "class not found with the specified id")
+    })
+    @GetMapping("/{id}")
+    public ResponseEntity<ClassResponseDTO> searchById(@PathVariable Long id) {
+            Class returnedClass = this.classService.findById(id);
+
+            return ResponseEntity.ok(new ClassResponseDTO(returnedClass));
+    }
+
+        @Operation(summary = "record a new class", description = "save a new class in database", responses = {
+                        @ApiResponse(responseCode = "201", description = "class created successfully"),
+                        @ApiResponse(responseCode = "400", description = "You probably filled out a field incorrectly or you're trying set class status as active but it don't have a teacher"),
+                        @ApiResponse(responseCode = "403", description = "acess denied"),
+                        @ApiResponse(responseCode = "404", description = "student not found"),
+                        @ApiResponse(responseCode = "409", description = "This student is already allocated to another class or this teacher cannot be assigned to this class this shift")
+        })
+
     @PostMapping
     public ResponseEntity<ClassResponseDTO> save(@RequestBody @Valid ClassRequestDTO classRequest, UriComponentsBuilder uriBuilder) {                          
 

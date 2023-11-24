@@ -17,6 +17,7 @@ import br.com.jmarcos.assessment_task.model.enums.ClassStatusEnum;
 import br.com.jmarcos.assessment_task.repository.ClassRepository;
 import br.com.jmarcos.assessment_task.service.exceptions.BadRequestException;
 import br.com.jmarcos.assessment_task.service.exceptions.ConflictException;
+import br.com.jmarcos.assessment_task.service.exceptions.ResourceNotFoundException;
 
 @Service
 public class ClassService {
@@ -33,12 +34,19 @@ public class ClassService {
         return this.classRepository.findAll(pageable);
     }
 
+    public Class findById(Long id) {
+        return this.classRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Class not found with the given id"));
+    }
+
 
     public Class save(ClassRequestDTO classRequest) {
         Class newClass = this.toClass(classRequest);
 
         return this.classRepository.save(newClass);
     }
+
+    
 
 
     private Class toClass(ClassRequestDTO classRequest) {
