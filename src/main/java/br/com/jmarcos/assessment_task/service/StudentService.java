@@ -16,6 +16,10 @@ public class StudentService {
 
     public Student findById(Long studentId) {
         return this.studentRepository.findById(studentId)
-            .orElseThrow(() -> new ResourceNotFoundException("Student not found with the given id"));
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found with the given id"));
+    }
+
+    public void updateStudent(Student student) {
+        this.studentRepository.save(student);
     }
 }

@@ -2,12 +2,10 @@ package br.com.jmarcos.assessment_task.model;
 
 import java.util.Set;
 
-
-
-
 import br.com.jmarcos.assessment_task.model.enums.ClassShiftEnum;
 import br.com.jmarcos.assessment_task.model.enums.ClassStatusEnum;
 import br.com.jmarcos.assessment_task.model.enums.SchoolSegmentEnum;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -30,11 +28,11 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Class {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private Long id; 
+    private Long id;
 
     @Column(name = "title")
     private String title;
@@ -48,12 +46,11 @@ public class Class {
     @Enumerated(EnumType.STRING)
     private SchoolSegmentEnum schoolSegment;
 
-    @Column(name = "students_id")
+    @Column(name = "max_students")
     private int maxStudents;
 
     private ClassShiftEnum classShift;
-    
 
-    @OneToMany(mappedBy = "classId", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "classId", fetch = FetchType.LAZY/* , cascade = {CascadeType.REFRESH, CascadeType.PERSIST} */)
     private Set<Student> students;
 }
