@@ -49,6 +49,7 @@ public class Class {
     @Column(name = "max_students")
     private int maxStudents;
 
+    @Enumerated(EnumType.STRING)
     private ClassShiftEnum classShift;
 
     @OneToMany(mappedBy = "classId", fetch = FetchType.LAZY/* , cascade = {CascadeType.REFRESH, CascadeType.PERSIST} */)

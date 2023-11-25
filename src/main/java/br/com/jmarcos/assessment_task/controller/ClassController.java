@@ -30,90 +30,90 @@ import br.com.jmarcos.assessment_task.model.Class;
 @RequestMapping("/classes")
 public class ClassController {
 
-    private final ClassService classService;
+        private final ClassService classService;
 
-    public ClassController(ClassService classService) {
-        this.classService = classService;
-    }
+        public ClassController(ClassService classService) {
+                this.classService = classService;
+        }
 
-    @Operation(summary = "Returns a list of classes", description = "Returns a list of all classes in database.", responses = {
-            @ApiResponse(responseCode = "200", description = "list returned successfully"),
-            @ApiResponse(responseCode = "403", description = "access denied")
-    })
+        @Operation(summary = "Returns a list of classes", description = "Returns a list of all classes in database.", responses = {
+                        @ApiResponse(responseCode = "200", description = "list returned successfully"),
+                        @ApiResponse(responseCode = "403", description = "access denied")
+        })
 
-    @GetMapping
-    public Page<ClassResponseDTO> search(Pageable pageable) {
-        return this.classService
-                .search(pageable)
-                .map(ClassResponseDTO::new);
-    }
+        @GetMapping
+        public Page<ClassResponseDTO> search(Pageable pageable) {
+                return this.classService
+                                .search(pageable)
+                                .map(ClassResponseDTO::new);
+        }
 
-    @Operation(summary = "returns a class by id", description = "returns class by the specified id", responses = {
-            @ApiResponse(responseCode = "200", description = "class returned successfully"),
-            @ApiResponse(responseCode = "400", description = "the submitted id is not a number"),
-            @ApiResponse(responseCode = "403", description = "access denied"),
-            @ApiResponse(responseCode = "404", description = "class not found with the specified id")
-    })
-    @GetMapping("/{id}")
-    public ResponseEntity<ClassResponseDTO> searchById(@PathVariable Long id) {
-        Class returnedClass = this.classService.findById(id);
+        @Operation(summary = "returns a class by id", description = "returns class by the specified id", responses = {
+                        @ApiResponse(responseCode = "200", description = "class returned successfully"),
+                        @ApiResponse(responseCode = "400", description = "the submitted id is not a number"),
+                        @ApiResponse(responseCode = "403", description = "access denied"),
+                        @ApiResponse(responseCode = "404", description = "class not found with the specified id")
+        })
+        @GetMapping("/{id}")
+        public ResponseEntity<ClassResponseDTO> searchById(@PathVariable Long id) {
+                Class returnedClass = this.classService.findById(id);
 
-        return ResponseEntity.ok(new ClassResponseDTO(returnedClass));
-    }
+                return ResponseEntity.ok(new ClassResponseDTO(returnedClass));
+        }
 
-    @Operation(summary = "record a new class", description = "save a new class in database", responses = {
-            @ApiResponse(responseCode = "201", description = "Class created successfully"),
-            @ApiResponse(responseCode = "400", description = "You probably filled out a field incorrectly or you're trying set class status as active but it don't have a teacher"),
-            @ApiResponse(responseCode = "403", description = "Acess denied"),
-            @ApiResponse(responseCode = "404", description = "Student not found"),
-            @ApiResponse(responseCode = "409", description = "This student is already allocated to another class or this teacher cannot be assigned to this class this shift")
-    })
+        @Operation(summary = "record a new class", description = "save a new class in database", responses = {
+                        @ApiResponse(responseCode = "201", description = "Class created successfully"),
+                        @ApiResponse(responseCode = "400", description = "You probably filled out a field incorrectly or you're trying set class status as active but it don't have a teacher"),
+                        @ApiResponse(responseCode = "403", description = "Acess denied"),
+                        @ApiResponse(responseCode = "404", description = "Student not found"),
+                        @ApiResponse(responseCode = "409", description = "This student is already allocated to another class or this teacher cannot be assigned to this class this shift")
+        })
 
-    @PostMapping
-    public ResponseEntity<ClassResponseDTO> save(@RequestBody @Valid ClassRequestDTO classRequest,
-            UriComponentsBuilder uriBuilder) {
+        @PostMapping
+        public ResponseEntity<ClassResponseDTO> save(@RequestBody @Valid ClassRequestDTO classRequest,
+                        UriComponentsBuilder uriBuilder) {
 
-        Class savedClass = this.classService.save(classRequest);
+                Class savedClass = this.classService.save(classRequest);
 
-        URI uri = uriBuilder.path("/classes/{id}").buildAndExpand(savedClass.getId()).toUri();
+                URI uri = uriBuilder.path("/classes/{id}").buildAndExpand(savedClass.getId()).toUri();
 
-        return ResponseEntity.created(uri).body(new ClassResponseDTO(savedClass));
-    }
+                return ResponseEntity.created(uri).body(new ClassResponseDTO(savedClass));
+        }
 
-    @Operation(summary = "delete a publishing Company by id", description = "delete a publishing company by the specified id from database", responses = {
-            @ApiResponse(responseCode = "204", description = "Class deleted"),
-            @ApiResponse(responseCode = "400", description = "The submitted id is not a number"),
-            @ApiResponse(responseCode = "403", description = "access denied"),
-            @ApiResponse(responseCode = "404", description = "class not found with the specified id")
+        @Operation(summary = "delete a class by id", description = "delete a class by the specified id", responses = {
+                        @ApiResponse(responseCode = "204", description = "Class deleted"),
+                        @ApiResponse(responseCode = "400", description = "The submitted id is not a number"),
+                        @ApiResponse(responseCode = "403", description = "access denied"),
+                        @ApiResponse(responseCode = "404", description = "class not found with the specified id")
 
-    })
+        })
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Object> delete(@PathVariable Long id) {
-        this.classService.delete(id);
+        @DeleteMapping("/{id}")
+        public ResponseEntity<Object> delete(@PathVariable Long id) {
+                this.classService.delete(id);
 
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).body("Class was successfully deleted");
+                return ResponseEntity.status(HttpStatus.NO_CONTENT).body("Class was successfully deleted");
 
-    }
+        }
 
-    @Operation(summary = "updates a publishing", description = "update data like,name,url,address etc", responses = {
-            @ApiResponse(responseCode = "200", ref = "class was updated"),
-            @ApiResponse(responseCode = "400", ref = "You probably filled out a field incorrectly or you're trying set class status as active but it don't have a teacher"),
-            @ApiResponse(responseCode = "403", ref = "Access denied"),
-            @ApiResponse(responseCode = "404", ref = "Student not found"),
-            @ApiResponse(responseCode = "409", ref = "This student is already allocated to another class or this teacher cannot be assigned to this class this shift")
+        @Operation(summary = "update class", description = "update all data class", responses = {
+                        @ApiResponse(responseCode = "200", description = "class was updated"),
+                        @ApiResponse(responseCode = "400", description = "You probably filled out a field incorrectly or you're trying set class status as active but it don't have a teacher"),
+                        @ApiResponse(responseCode = "403", description = "Access denied"),
+                        @ApiResponse(responseCode = "404", description = "Student not found"),
+                        @ApiResponse(responseCode = "409", description = "This student is already allocated to another class or this teacher cannot be assigned to this class this shift")
 
-    })
+        })
 
-    @PutMapping("/{id}")
-    public ResponseEntity<ClassResponseDTO> update(@RequestBody @Valid ClassRequestDTO classRequestDTO,
-            @PathVariable Long id) {
+        @PutMapping("/{id}")
+        public ResponseEntity<ClassResponseDTO> update(@RequestBody @Valid ClassRequestDTO classRequestDTO,
+                        @PathVariable Long id) {
 
-        Class updattedClass = this.classService
-                .update(classRequestDTO, id);
+                Class updattedClass = this.classService
+                                .update(classRequestDTO, id);
 
-        return ResponseEntity.ok(new ClassResponseDTO(updattedClass));
+                return ResponseEntity.ok(new ClassResponseDTO(updattedClass));
 
-    }
+        }
 
 }

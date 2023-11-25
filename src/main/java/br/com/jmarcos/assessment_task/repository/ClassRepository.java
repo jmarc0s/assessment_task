@@ -9,10 +9,10 @@ import br.com.jmarcos.assessment_task.model.Class;
 import br.com.jmarcos.assessment_task.model.enums.ClassShiftEnum;
 
 @Repository
-public interface ClassRepository extends JpaRepository<Class, Long>{
+public interface ClassRepository extends JpaRepository<Class, Long> {
 
     boolean existsByTeacherHolderAndClassShift(String teacherHolder, ClassShiftEnum classShift);
 
-    //Optional<Class> findByTeacherHolderAndClassShift(String teacherHolder);
-    
+    Optional<Class> findByTeacherHolderAndClassShift(String teacherHolder, ClassShiftEnum classShift);
+
 }
