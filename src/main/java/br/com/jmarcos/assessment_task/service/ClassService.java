@@ -2,6 +2,7 @@ package br.com.jmarcos.assessment_task.service;
 
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -48,32 +49,50 @@ public class ClassService {
     public Class update(ClassRequestDTO classUpdateRequest,
             Long id) {
         Class oldClass = this.findById(id);
-        Class toUpdateClass = this.toClass(classUpdateRequest);
 
-        // if (!Objects.equals(oldClass.getName(),
-        // toUpdateClass.getName())
-        // && this.existsByName(toUpdateClass.getName())) {
-
-        // throw new ConflictException("Class name is already in use");
-        // }
-
-        Class updatedClass = fillUpdate(oldClass, toUpdateClass);
+        Class updatedClass = fillUpdate(oldClass, classUpdateRequest);
 
         return this.classRepository.save(updatedClass);
     }
 
     private Class fillUpdate(Class oldClass,
-            Class toUpdateClass) {
+            ClassRequestDTO classUpdateRequest) {
 
-        oldClass.setTitle(toUpdateClass.getTitle());
-        oldClass.setClassStatus(toUpdateClass.getClassStatus());
-        oldClass.setClassShift(toUpdateClass.getClassShift());
-        oldClass.setMaxStudents(toUpdateClass.getMaxStudents());
-        oldClass.setSchoolSegment(toUpdateClass.getSchoolSegment());
-        oldClass.setStudents(toUpdateClass.getStudents());
-        oldClass.setTeacherHolder(toUpdateClass.getTeacherHolder());
+        oldClass.setTitle(classUpdateRequest.getTitle());
+        oldClass.setClassStatus(this.validateClassStatus(classUpdateRequest.getClassStatus(), classUpdateRequest.getTeacherHolder()));
+        oldClass.setClassShift(classUpdateRequest.getClassShift());
+        oldClass.setMaxStudents(classUpdateRequest.getMaxStudents());
+        oldClass.setSchoolSegment(classUpdateRequest.getSchoolSegment());
+
+        //oldClass.setStudents(classUpdateRequest.getStudentsId());
+        oldClass.setTeacherHolder(this.validateTeacherUpdate(classUpdateRequest, oldClass.getId()));
 
         return oldClass;
+    }
+
+    private String validateTeacherUpdate(ClassRequestDTO classUpdateRequest, Long id) {
+        //Optional<Class> returnedClass = this.classRepository.findByTeacherHolderAndClassShift(classUpdateRequest.getTeacherHolder());
+
+        // if (returnedClass.isPresent() && !Objects.equals(returnedClass.get().getId(), id)) {
+        //     throw new ConflictException("This teacher cannot be assigned to this class this shift");
+        // }
+
+        return classUpdateRequest.getTeacherHolder();
+    }
+
+    private Class toClass(ClassRequestDTO classRequest) {
+        Class newClass = new Class();
+
+        newClass.setTitle(classRequest.getTitle());
+        newClass.setClassStatus(
+                this.validateClassStatus(classRequest.getClassStatus(), classRequest.getTeacherHolder()));
+        newClass.setTeacherHolder(this.validateTeacher(classRequest.getTeacherHolder(), classRequest.getClassShift()));
+        newClass.setSchoolSegment(classRequest.getSchoolSegment());
+        newClass.setMaxStudents(classRequest.getMaxStudents());
+        newClass.setClassShift(classRequest.getClassShift());
+        newClass.setStudents(this.findStudents(classRequest.getStudentsId()));
+
+        return newClass;
     }
 
     @Transactional
@@ -93,20 +112,7 @@ public class ClassService {
         }
     }
 
-    private Class toClass(ClassRequestDTO classRequest) {
-        Class newClass = new Class();
 
-        newClass.setTitle(classRequest.getTitle());
-        newClass.setClassStatus(
-                this.validateClassStatus(classRequest.getClassStatus(), classRequest.getTeacherHolder()));
-        newClass.setTeacherHolder(this.validateTeacher(classRequest.getTeacherHolder(), classRequest.getClassShift()));
-        newClass.setSchoolSegment(classRequest.getSchoolSegment());
-        newClass.setMaxStudents(classRequest.getMaxStudents());
-        newClass.setClassShift(classRequest.getClassShift());
-        newClass.setStudents(this.findStudents(classRequest.getStudentsId()));
-
-        return newClass;
-    }
 
     private ClassStatusEnum validateClassStatus(ClassStatusEnum classStatus, String teacherHolder) {
         if (Objects.equals(teacherHolder, null) && Objects.equals(classStatus, ClassStatusEnum.ACTIVE)) {
