@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -117,62 +118,28 @@ public class ClassService {
         return newClass;
     }
 
-    // REFATORAR ESSE CODIGO (SUGESTÃO: buscar uma lista de todas as classes na qual
-    // o professor esta associado e fazer uma varredura nos turnos dessa lista para
-    // ver se há conflito)
     private String validateTeacherOnThisShiftUpdate(ClassRequestDTO classUpdateRequest, Class oldClass) {
 
         if (classUpdateRequest.getTeacherHolder() != null) {
-            if (classUpdateRequest.getClassShift() == ClassShiftEnum.AFTERNOONSHIFT
-                    || classUpdateRequest.getClassShift() == ClassShiftEnum.MORNINGSHIFT) {
 
-                Optional<Class> returnedClass = this.classRepository
-                        .findByTeacherHolderAndClassShift(classUpdateRequest.getTeacherHolder(),
-                                ClassShiftEnum.FULLSHIFT);
+            List<Class> classes = this.classRepository.findAllByTeacherHolder(classUpdateRequest.getTeacherHolder());
 
-                returnedClass.ifPresent(clazz -> {
+            classes.removeIf(clazz -> Objects.equals(clazz.getId(), oldClass.getId()));
 
-                    if (!clazz.getId().equals(oldClass.getId())) {
-                        System.out.println("executou");
-                        throw new ConflictException("This teacher cannot be assigned to this class this shift");
-                    }
-                });
+            if (Objects.equals(classUpdateRequest.getClassShift(), ClassShiftEnum.FULLSHIFT) && !classes.isEmpty()) {
+                throw new ConflictException("This teacher cannot be assigned to this class this shift");
+            } else {
+                List<ClassShiftEnum> shiftEnumList = classes.stream()
+                        .map(clazz -> clazz.getClassShift())
+                        .collect(Collectors.toList());
 
-            }
-
-            if (classUpdateRequest.getClassShift() == ClassShiftEnum.FULLSHIFT) {
-
-                Optional<Class> returnedMorningClass = this.classRepository
-                        .findByTeacherHolderAndClassShift(classUpdateRequest.getTeacherHolder(),
-                                ClassShiftEnum.MORNINGSHIFT);
-
-                returnedMorningClass.ifPresent(clazz -> {
-                    if (!clazz.getId().equals(oldClass.getId())) {
-                        throw new ConflictException("This teacher cannot be assigned to this class this shift");
-                    }
-                });
-
-                Optional<Class> returnedAfternoonClass = this.classRepository
-                        .findByTeacherHolderAndClassShift(classUpdateRequest.getTeacherHolder(),
-                                ClassShiftEnum.AFTERNOONSHIFT);
-
-                returnedAfternoonClass.ifPresent(clazz -> {
-                    if (!clazz.getId().equals(oldClass.getId())) {
-                        throw new ConflictException("This teacher cannot be assigned to this class this shift");
-                    }
-                });
-
-            }
-
-            Optional<Class> returnedChoosenShiftClass = this.classRepository
-                    .findByTeacherHolderAndClassShift(classUpdateRequest.getTeacherHolder(),
-                            classUpdateRequest.getClassShift());
-
-            returnedChoosenShiftClass.ifPresent(clazz -> {
-                if (!clazz.getId().equals(oldClass.getId())) {
+                if (shiftEnumList.contains(classUpdateRequest.getClassShift())
+                        || shiftEnumList.contains(ClassShiftEnum.FULLSHIFT)) {
                     throw new ConflictException("This teacher cannot be assigned to this class this shift");
                 }
-            });
+
+            }
+
         }
 
         return classUpdateRequest.getTeacherHolder();
@@ -203,31 +170,23 @@ public class ClassService {
         return classStatus;
     }
 
-    // REFATORAR ESSE CODIGO (SUGESTÃO: buscar uma lista de todas as classes na qual
-    // o professor esta associado e fazer uma varredura nos turnos dessa lista para
-    // ver se há conflito)
     private String validateTeacherOnThisShift(String teacherHolder, ClassShiftEnum classShift) {
-
         if (teacherHolder != null) {
-            if ((classShift == ClassShiftEnum.AFTERNOONSHIFT || classShift == ClassShiftEnum.MORNINGSHIFT)
-                    && this.classRepository.existsByTeacherHolderAndClassShift(teacherHolder,
-                            ClassShiftEnum.FULLSHIFT)) {
+            List<Class> classes = this.classRepository.findAllByTeacherHolder(teacherHolder);
 
+            if (Objects.equals(classShift, ClassShiftEnum.FULLSHIFT) && !classes.isEmpty()) {
                 throw new ConflictException("This teacher cannot be assigned to this class this shift");
+            } else {
+                List<ClassShiftEnum> shiftEnumList = classes.stream()
+                        .map(clazz -> clazz.getClassShift())
+                        .collect(Collectors.toList());
+
+                if (shiftEnumList.contains(classShift) || shiftEnumList.contains(ClassShiftEnum.FULLSHIFT)) {
+                    throw new ConflictException("This teacher cannot be assigned to this class this shift");
+                }
 
             }
 
-            if (classShift == ClassShiftEnum.FULLSHIFT &&
-                    (this.classRepository.existsByTeacherHolderAndClassShift(teacherHolder, ClassShiftEnum.MORNINGSHIFT)
-                            || this.classRepository.existsByTeacherHolderAndClassShift(teacherHolder,
-                                    ClassShiftEnum.AFTERNOONSHIFT))) {
-                throw new ConflictException("This teacher cannot be assigned to this class this shift");
-
-            }
-
-            if (this.classRepository.existsByTeacherHolderAndClassShift(teacherHolder, classShift)) {
-                throw new ConflictException("This teacher cannot be assigned to this class this shift");
-            }
         }
 
         return teacherHolder;

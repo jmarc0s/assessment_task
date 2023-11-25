@@ -1,5 +1,6 @@
 package br.com.jmarcos.assessment_task.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,5 +15,7 @@ public interface ClassRepository extends JpaRepository<Class, Long> {
     boolean existsByTeacherHolderAndClassShift(String teacherHolder, ClassShiftEnum classShift);
 
     Optional<Class> findByTeacherHolderAndClassShift(String teacherHolder, ClassShiftEnum classShift);
+
+    List<Class> findAllByTeacherHolder(String teacherHolder);
 
 }
