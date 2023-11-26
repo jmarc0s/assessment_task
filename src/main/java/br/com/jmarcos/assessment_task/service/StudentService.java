@@ -11,7 +11,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import br.com.jmarcos.assessment_task.controller.DTO.classes.ClassRequestDTO;
 import br.com.jmarcos.assessment_task.controller.DTO.student.StudentRequestDTO;
 import br.com.jmarcos.assessment_task.controller.DTO.student.address.AddressRequestDTO;
 import br.com.jmarcos.assessment_task.controller.DTO.student.responsible.ResponsibleRequestDTO;
@@ -22,7 +21,6 @@ import br.com.jmarcos.assessment_task.repository.StudentRepository;
 import br.com.jmarcos.assessment_task.service.exceptions.BadRequestException;
 import br.com.jmarcos.assessment_task.service.exceptions.ConflictException;
 import br.com.jmarcos.assessment_task.service.exceptions.ResourceNotFoundException;
-import jakarta.validation.Valid;
 
 @Service
 public class StudentService {
@@ -53,6 +51,15 @@ public class StudentService {
         Student returnedStudent = this.findById(id);
 
         this.studentRepository.delete(returnedStudent);
+    }
+
+    public Student update(StudentRequestDTO studentRequestDTO,
+            Long id) {
+        Student oldStudent = this.findById(id);
+
+        Student updatedStudent = fillUpdate(oldStudent, studentRequestDTO);
+
+        return this.studentRepository.save(updatedStudent);
     }
 
     private Student toStudent(StudentRequestDTO studentRequest) {
@@ -117,15 +124,6 @@ public class StudentService {
 
     public void saveSettingClass(Student student) {
         this.studentRepository.save(student);
-    }
-
-    public Student update(StudentRequestDTO studentRequestDTO,
-            Long id) {
-        Student oldStudent = this.findById(id);
-
-        Student updatedStudent = fillUpdate(oldStudent, studentRequestDTO);
-
-        return this.studentRepository.save(updatedStudent);
     }
 
     private Student fillUpdate(Student oldStudent, StudentRequestDTO studentRequestDTO) {
