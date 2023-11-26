@@ -44,7 +44,10 @@ public class ClassService {
     public Class save(ClassRequestDTO classRequest) {
         Class newClass = this.toClass(classRequest);
 
-        return this.classRepository.save(newClass);
+        newClass = this.classRepository.save(newClass);
+        this.setClassToStudents(newClass);
+
+        return newClass;
     }
 
     public Class update(ClassRequestDTO classUpdateRequest,
@@ -53,7 +56,18 @@ public class ClassService {
 
         Class updatedClass = fillUpdate(oldClass, classUpdateRequest);
 
+        this.setClassToStudents(updatedClass);
+
         return this.classRepository.save(updatedClass);
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        Class returnedClass = this.findById(id);
+
+        this.updateStudents(returnedClass);
+
+        this.classRepository.delete(returnedClass);
     }
 
     private Class fillUpdate(Class oldClass,
@@ -72,6 +86,7 @@ public class ClassService {
         return oldClass;
     }
 
+    // POSSIBILIDADE DE REFATORAÇÃO: ATUALIZAR APENAS OS ESTUDANTES AFETADOS
     private Set<Student> validateUpdateStudents(Class oldClass, ClassRequestDTO updateClass) {
         Set<Student> studentList = new HashSet<>();
 
@@ -91,12 +106,10 @@ public class ClassService {
             }
         }
 
-        // for (Student student : oldClass.getStudents()) {
-        // Student returnedStudent =
-        // this.studentService.getStudentById(student.getId());
-        // returnedStrudent.setClassId(null);
-        // this.studentRepository.save(returnedStrudent);
-        // }
+        for (Student student : oldClass.getStudents()) {
+            student.setClassId(null);
+            this.studentService.saveSettingClass(student);
+        }
 
         return studentList;
     }
@@ -143,15 +156,6 @@ public class ClassService {
         }
 
         return classUpdateRequest.getTeacherHolder();
-    }
-
-    @Transactional
-    public void delete(Long id) {
-        Class returnedClass = this.findById(id);
-
-        this.updateStudents(returnedClass);
-
-        this.classRepository.delete(returnedClass);
     }
 
     private void updateStudents(Class returnedClass) {
@@ -212,5 +216,13 @@ public class ClassService {
         }
 
         return student;
+    }
+
+    private void setClassToStudents(Class newClass) {
+        for (Student student : newClass.getStudents()) {
+            student.setClassId(newClass);
+            this.studentService.saveSettingClass(student);
+        }
+
     }
 }

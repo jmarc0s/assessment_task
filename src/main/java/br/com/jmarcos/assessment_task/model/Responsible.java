@@ -1,6 +1,5 @@
 package br.com.jmarcos.assessment_task.model;
 
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -18,20 +17,18 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Resposible {
+public class Responsible {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private Long id; 
+    private Long id;
 
     @Column(name = "name")
     private String name;
 
-
     @Column(name = "email")
     private String email;
-
 
     @Column(name = "phone")
     private String phone;

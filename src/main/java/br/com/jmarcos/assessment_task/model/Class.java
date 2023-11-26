@@ -52,6 +52,6 @@ public class Class {
     @Enumerated(EnumType.STRING)
     private ClassShiftEnum classShift;
 
-    @OneToMany(mappedBy = "classId", fetch = FetchType.LAZY/* , cascade = {CascadeType.REFRESH, CascadeType.PERSIST} */)
+    @OneToMany(mappedBy = "classId", fetch = FetchType.LAZY)
     private Set<Student> students;
 }

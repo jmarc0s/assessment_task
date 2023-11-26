@@ -27,7 +27,7 @@ public class HandlerExceptionConfig {
 
         @ExceptionHandler(ResourceNotFoundException.class)
         public ResponseEntity<ExceptionDetails> handlerResourceNotFoundException(ResourceNotFoundException exception) {
-                ExceptionDetails details = new ExceptionDetails("Resource Dot Found in Database",
+                ExceptionDetails details = new ExceptionDetails("Resource Not Found in Database",
                                 exception.getMessage(),
                                 HttpStatus.NOT_FOUND.value());
                 return new ResponseEntity<>(details, HttpStatus.NOT_FOUND);

@@ -38,6 +38,7 @@ public class ClassController {
 
         @Operation(summary = "Returns a list of classes", description = "Returns a list of all classes in database.", responses = {
                         @ApiResponse(responseCode = "200", description = "list returned successfully"),
+                        @ApiResponse(responseCode = "500", description = "something went wrong"),
                         @ApiResponse(responseCode = "403", description = "access denied")
         })
 
@@ -64,7 +65,7 @@ public class ClassController {
         @Operation(summary = "record a new class", description = "save a new class in database", responses = {
                         @ApiResponse(responseCode = "201", description = "Class created successfully"),
                         @ApiResponse(responseCode = "400", description = "You probably filled out a field incorrectly or you're trying set class status as active but it don't have a teacher"),
-                        @ApiResponse(responseCode = "403", description = "Acess denied"),
+                        @ApiResponse(responseCode = "403", description = "Access denied"),
                         @ApiResponse(responseCode = "404", description = "Student not found"),
                         @ApiResponse(responseCode = "409", description = "This student is already allocated to another class or this teacher cannot be assigned to this class this shift")
         })
