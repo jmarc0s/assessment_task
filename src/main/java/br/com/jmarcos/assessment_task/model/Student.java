@@ -61,6 +61,10 @@ public class Student {
     @JoinColumn(name = "class_id")
     private Class classId;
 
+    @OneToOne(cascade = { CascadeType.REMOVE, CascadeType.REFRESH, CascadeType.PERSIST })
+    @JoinColumn(name = "user_id")
+    private User user;
+
     public Student(Long studentId) {
         this.id = studentId;
     }

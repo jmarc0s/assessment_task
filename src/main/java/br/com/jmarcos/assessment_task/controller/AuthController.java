@@ -13,11 +13,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import br.com.jmarcos.assessment_task.controller.DTO.token.TokenDTO;
-import br.com.jmarcos.assessment_task.controller.DTO.user.UserDTO;
+import br.com.jmarcos.assessment_task.controller.DTO.user.UserLoginDTO;
 import br.com.jmarcos.assessment_task.security.TokenService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 import jakarta.validation.Valid;
@@ -37,7 +35,7 @@ public class AuthController {
             @ApiResponse(responseCode = "401", description = "invalid user")
     })
     @PostMapping
-    public ResponseEntity<Object> Login(@RequestBody @Valid UserDTO userDTO) {
+    public ResponseEntity<Object> Login(@RequestBody @Valid UserLoginDTO userDTO) {
 
         UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = userDTO.convert();
 

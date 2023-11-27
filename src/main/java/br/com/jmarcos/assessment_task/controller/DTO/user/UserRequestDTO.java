@@ -1,8 +1,12 @@
 package br.com.jmarcos.assessment_task.controller.DTO.user;
 
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import java.util.Set;
 
+import org.hibernate.validator.constraints.br.CPF;
+
+import br.com.jmarcos.assessment_task.model.enums.UserTypeEnum;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -11,19 +15,16 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
-public class UserDTO {
-    @NotBlank
+@AllArgsConstructor
+public class UserRequestDTO {
+
     @NotNull
+    @CPF
     private String login;
 
-    @NotBlank
     @NotNull
+    @NotBlank
     private String password;
 
-    public UsernamePasswordAuthenticationToken convert() {
-
-        return new UsernamePasswordAuthenticationToken(login, password);
-    }
 }

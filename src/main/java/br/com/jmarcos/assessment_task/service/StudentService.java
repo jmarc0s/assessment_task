@@ -9,14 +9,18 @@ import java.util.Set;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import br.com.jmarcos.assessment_task.controller.DTO.student.StudentRequestDTO;
 import br.com.jmarcos.assessment_task.controller.DTO.student.address.AddressRequestDTO;
 import br.com.jmarcos.assessment_task.controller.DTO.student.responsible.ResponsibleRequestDTO;
 import br.com.jmarcos.assessment_task.model.Address;
+import br.com.jmarcos.assessment_task.model.Class;
 import br.com.jmarcos.assessment_task.model.Responsible;
 import br.com.jmarcos.assessment_task.model.Student;
+import br.com.jmarcos.assessment_task.model.User;
+import br.com.jmarcos.assessment_task.model.enums.UserTypeEnum;
 import br.com.jmarcos.assessment_task.repository.StudentRepository;
 import br.com.jmarcos.assessment_task.service.exceptions.BadRequestException;
 import br.com.jmarcos.assessment_task.service.exceptions.ConflictException;
@@ -59,6 +63,8 @@ public class StudentService {
 
         Student updatedStudent = fillUpdate(oldStudent, studentRequestDTO);
 
+        this.updateUser(updatedStudent);
+
         return this.studentRepository.save(updatedStudent);
     }
 
@@ -71,7 +77,19 @@ public class StudentService {
         student.setResponsibles(this.toResponsibles(studentRequest.getResponsibles()));
         student.setAddress(this.toAddress(studentRequest.getAddress()));
 
+        student.setUser(this.createUser(studentRequest));
+
         return student;
+    }
+
+    private User createUser(StudentRequestDTO studentRequest) {
+        User user = new User();
+
+        user.setLogin(studentRequest.getCpf());
+        user.setPassword(new BCryptPasswordEncoder().encode(studentRequest.getPassword()));
+        user.setUserType(Set.of(UserTypeEnum.ROLE_STUDENT));
+
+        return user;
     }
 
     private LocalDate validateDateOfBirth(String dateOfBirthString) {
@@ -137,6 +155,10 @@ public class StudentService {
         return oldStudent;
     }
 
+    private void updateUser(Student student) {
+        student.getUser().setLogin(student.getCpf());
+    }
+
     private String validateCpfToUpdate(String cpf, Long id) {
         Optional<Student> student = this.studentRepository.findByCpf(cpf);
 
@@ -147,6 +169,15 @@ public class StudentService {
         });
 
         return cpf;
+    }
+
+    public Class findMyClass(User user) {
+        Student student = this.studentRepository.findByUserId(user.getId());
+
+        if (Objects.equals(student.getClassId(), null)) {
+            throw new BadRequestException("You are not enrolled in any class");
+        }
+        return student.getClassId();
     }
 
 }

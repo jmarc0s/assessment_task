@@ -31,12 +31,13 @@ public class SecurityConfigurations {
                 .authorizeHttpRequests((requests) -> {
                     requests
                             .requestMatchers(HttpMethod.POST, "/auth").permitAll()
+                            .requestMatchers(HttpMethod.GET, "/students/class").permitAll()
                             .requestMatchers(HttpMethod.GET,
                                     "/v3/api-docs/**",
                                     "/swagger-ui/**",
                                     "/swagger-ui.html")
                             .permitAll()
-                            .anyRequest().authenticated();
+                            .anyRequest().hasRole("SECRETARY");
                 }).csrf().disable()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and().addFilterBefore(new AuthenticateTokenFilter(tokenService, userRepository),
