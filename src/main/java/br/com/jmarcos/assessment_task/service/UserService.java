@@ -7,7 +7,6 @@ import java.util.Set;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import br.com.jmarcos.assessment_task.controller.DTO.classes.ClassRequestDTO;
 import br.com.jmarcos.assessment_task.controller.DTO.user.UserRequestDTO;
 import br.com.jmarcos.assessment_task.model.User;
 import br.com.jmarcos.assessment_task.model.enums.UserTypeEnum;

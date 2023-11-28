@@ -79,9 +79,8 @@ public class ClassService {
         oldClass.setClassShift(classUpdateRequest.getClassShift());
         oldClass.setMaxStudents(classUpdateRequest.getMaxStudents());
         oldClass.setSchoolSegment(classUpdateRequest.getSchoolSegment());
-
-        oldClass.setStudents(this.validateUpdateStudents(oldClass, classUpdateRequest));
         oldClass.setTeacherHolder(this.validateTeacherOnThisShiftUpdate(classUpdateRequest, oldClass));
+        oldClass.setStudents(this.validateUpdateStudents(oldClass, classUpdateRequest));
 
         return oldClass;
     }
@@ -98,7 +97,7 @@ public class ClassService {
 
                     if (!Objects.equals(returnedStudent.getClassId().getId(), oldClass.getId())) {
                         throw new ConflictException(
-                                "the student with id " + returnedStudent.getId() + " is already in another class");
+                                "This student is already allocated to another class");
                     }
 
                 }
