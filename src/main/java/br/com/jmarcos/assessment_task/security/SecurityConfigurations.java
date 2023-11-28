@@ -31,7 +31,7 @@ public class SecurityConfigurations {
                 .authorizeHttpRequests((requests) -> {
                     requests
                             .requestMatchers(HttpMethod.POST, "/auth").permitAll()
-                            .requestMatchers(HttpMethod.GET, "/students/class").permitAll()
+                            .requestMatchers(HttpMethod.GET, "/students/class").hasRole("STUDENT")
                             .requestMatchers(HttpMethod.GET,
                                     "/v3/api-docs/**",
                                     "/swagger-ui/**",
