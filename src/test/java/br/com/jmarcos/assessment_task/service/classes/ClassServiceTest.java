@@ -220,7 +220,7 @@ public class ClassServiceTest {
     }
 
     @Test
-    void delete_Returns_void_WhenSuccessful() {
+    void delete_Returns_Void_WhenSuccessful() {
         Class classToDelete = this.createClass();
         when(classRepository.findById(anyLong())).thenReturn(Optional.of(classToDelete));
 

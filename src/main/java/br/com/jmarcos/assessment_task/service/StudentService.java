@@ -149,10 +149,22 @@ public class StudentService {
         oldStudent.setName(studentRequestDTO.getName());
         oldStudent.setCpf(this.validateCpfToUpdate(studentRequestDTO.getCpf(), oldStudent.getId()));
         oldStudent.setResponsibles(this.toResponsibles(studentRequestDTO.getResponsibles()));
-        oldStudent.setAddress(this.toAddress(studentRequestDTO.getAddress()));
+        oldStudent.setAddress(this.toAddressUpdate(studentRequestDTO.getAddress(), oldStudent.getAddress().getId()));
         oldStudent.setDateOfBirth(this.validateDateOfBirth(studentRequestDTO.getDateOfBirth()));
 
         return oldStudent;
+    }
+
+    private Address toAddressUpdate(AddressRequestDTO addressRequest, Long id) {
+        Address address = new Address();
+
+        address.setId(id);
+        address.setStreet(addressRequest.getStreet());
+        address.setNumber(addressRequest.getNumber());
+        address.setNeighborhood(addressRequest.getNeighborhood());
+        address.setComplement(addressRequest.getComplement());
+
+        return address;
     }
 
     private void updateUser(Student student) {

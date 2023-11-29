@@ -1,6 +1,5 @@
 package br.com.jmarcos.assessment_task.controller.DTO.student;
 
-import java.time.LocalDate;
 import java.util.Set;
 
 import org.hibernate.validator.constraints.br.CPF;
@@ -45,5 +44,4 @@ public class StudentRequestDTO {
     @NotBlank
     private String password;
 
-    private Long classId;
 }
