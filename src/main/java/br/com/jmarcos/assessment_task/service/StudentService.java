@@ -63,7 +63,7 @@ public class StudentService {
 
         Student updatedStudent = fillUpdate(oldStudent, studentRequestDTO);
 
-        this.updateUser(updatedStudent);
+        this.updateUser(updatedStudent, studentRequestDTO);
 
         return this.studentRepository.save(updatedStudent);
     }
@@ -167,8 +167,9 @@ public class StudentService {
         return address;
     }
 
-    private void updateUser(Student student) {
-        student.getUser().setLogin(student.getCpf());
+    private void updateUser(Student student, StudentRequestDTO studentRequestDTO) {
+        student.getUser().setLogin(studentRequestDTO.getCpf());
+        student.getUser().setPassword(studentRequestDTO.getPassword());
     }
 
     private String validateCpfToUpdate(String cpf, Long id) {

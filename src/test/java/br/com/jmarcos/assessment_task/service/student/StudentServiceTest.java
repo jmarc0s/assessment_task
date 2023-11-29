@@ -68,7 +68,8 @@ public class StudentServiceTest {
         Assertions.assertEquals(studentList.get(0).getClassId(), returnedStudentList.get(0).getClassId());
         Assertions.assertEquals(studentList.get(0).getDateOfBirth(), returnedStudentList.get(0).getDateOfBirth());
         Assertions.assertEquals(studentList.get(0).getResponsibles(), returnedStudentList.get(0).getResponsibles());
-        Assertions.assertTrue(returnedStudentList.get(0).getResponsibles().containsAll(studentList.get(0).getResponsibles()));
+        Assertions.assertTrue(
+                returnedStudentList.get(0).getResponsibles().containsAll(studentList.get(0).getResponsibles()));
         verify(studentRepository).findAll(pageable);
 
     }
@@ -83,7 +84,7 @@ public class StudentServiceTest {
         Student returnedStudent = this.studentService
                 .findById(1L);
 
-        Assertions.assertEquals( student.getId(), returnedStudent.getId());
+        Assertions.assertEquals(student.getId(), returnedStudent.getId());
         Assertions.assertEquals(student.getName(), returnedStudent.getName());
         Assertions.assertEquals(student.getCpf(), returnedStudent.getCpf());
         Assertions.assertNotNull(student.getAddress().getId());
@@ -97,30 +98,27 @@ public class StudentServiceTest {
         Assertions.assertEquals(student.getUser().getLogin(), returnedStudent.getCpf());
         Assertions.assertEquals(student.getUser().getPassword(), returnedStudent.getUser().getPassword());
         Assertions.assertTrue(student.getUser().getUserType().contains(UserTypeEnum.ROLE_STUDENT));
-        
-        Assertions.assertAll( StreamUtils.<Responsible, Responsible, Executable>zip(student.getResponsibles().stream(),  returnedStudent.getResponsibles().stream(), (saved, request) -> {
-        return () -> {
-            Assertions.assertEquals(saved.getName(), request.getName());
-            Assertions.assertEquals(saved.getEmail(), request.getEmail());
-            Assertions.assertEquals(saved.getPhone(), request.getPhone());
-        
-        };
-    }).toArray(Executable[]::new)
-);
 
+        Assertions.assertAll(StreamUtils.<Responsible, Responsible, Executable>zip(student.getResponsibles().stream(),
+                returnedStudent.getResponsibles().stream(), (saved, request) -> {
+                    return () -> {
+                        Assertions.assertEquals(saved.getName(), request.getName());
+                        Assertions.assertEquals(saved.getEmail(), request.getEmail());
+                        Assertions.assertEquals(saved.getPhone(), request.getPhone());
+
+                    };
+                }).toArray(Executable[]::new));
 
         verify(studentRepository).findById(anyLong());
 
     }
 
-
-
     @Test
-    void save_Returns_ASavedStudent_WehnSuccessful(){
+    void save_Returns_ASavedStudent_WehnSuccessful() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         StudentRequestDTO studentRequest = this.createStudentRequestDTO();
         when(studentRepository.save(any(Student.class))).thenReturn(this.createStudent());
-        
+
         Student savedStudent = this.studentService.save(studentRequest);
 
         Assertions.assertNotNull(savedStudent.getId());
@@ -129,23 +127,26 @@ public class StudentServiceTest {
         Assertions.assertNotNull(savedStudent.getAddress().getId());
         Assertions.assertEquals(savedStudent.getAddress().getStreet(), studentRequest.getAddress().getStreet());
         Assertions.assertEquals(savedStudent.getAddress().getNumber(), studentRequest.getAddress().getNumber());
-        Assertions.assertEquals(savedStudent.getAddress().getNeighborhood(), studentRequest.getAddress().getNeighborhood());
+        Assertions.assertEquals(savedStudent.getAddress().getNeighborhood(),
+                studentRequest.getAddress().getNeighborhood());
         Assertions.assertEquals(savedStudent.getAddress().getComplement(), studentRequest.getAddress().getComplement());
         Assertions.assertNull(savedStudent.getClassId());
-        Assertions.assertEquals(savedStudent.getDateOfBirth(), LocalDate.parse(studentRequest.getDateOfBirth(), formatter));
+        Assertions.assertEquals(savedStudent.getDateOfBirth(),
+                LocalDate.parse(studentRequest.getDateOfBirth(), formatter));
         Assertions.assertNotNull(savedStudent.getUser().getId());
         Assertions.assertEquals(savedStudent.getUser().getLogin(), studentRequest.getCpf());
         Assertions.assertEquals(savedStudent.getUser().getPassword(), studentRequest.getPassword());
         Assertions.assertTrue(savedStudent.getUser().getUserType().contains(UserTypeEnum.ROLE_STUDENT));
-        Assertions.assertAll( StreamUtils.<Responsible, ResponsibleRequestDTO, Executable>zip(savedStudent.getResponsibles().stream(),  studentRequest.getResponsibles().stream(), (saved, request) -> {
-        return () -> {
-            Assertions.assertEquals(saved.getName(), request.getName());
-            Assertions.assertEquals(saved.getEmail(), request.getEmail());
-            Assertions.assertEquals(saved.getPhone(), request.getPhone());
-        
-        };
-    }).toArray(Executable[]::new)
-);
+        Assertions.assertAll(
+                StreamUtils.<Responsible, ResponsibleRequestDTO, Executable>zip(savedStudent.getResponsibles().stream(),
+                        studentRequest.getResponsibles().stream(), (saved, request) -> {
+                            return () -> {
+                                Assertions.assertEquals(saved.getName(), request.getName());
+                                Assertions.assertEquals(saved.getEmail(), request.getEmail());
+                                Assertions.assertEquals(saved.getPhone(), request.getPhone());
+
+                            };
+                        }).toArray(Executable[]::new));
 
         verify(studentRepository).save(any(Student.class));
         verify(studentRepository).existsByCpf(anyString());
@@ -168,12 +169,11 @@ public class StudentServiceTest {
 
     }
 
-
     @Test
     void save_Throws_BadRequestException_WhenDateOfBirthIsNotValid() {
         StudentRequestDTO studentRequest = this.createStudentRequestDTO();
         studentRequest.setDateOfBirth("01/10/2100");
-        
+
         BadRequestException badRequestException = Assertions
                 .assertThrows(BadRequestException.class,
                         () -> studentService.save(studentRequest));
@@ -197,7 +197,6 @@ public class StudentServiceTest {
         verify(studentRepository).delete(any(Student.class));
     }
 
-
     @Test
     void delete_Throws_ResourceNotFoundException_WhenStudentNotFound() {
         when(studentRepository.findById(anyLong())).thenReturn(Optional.empty());
@@ -215,7 +214,7 @@ public class StudentServiceTest {
     }
 
     @Test
-    void update_Returns_AnUpdatedStudent_WehnSuccessful(){
+    void update_Returns_AnUpdatedStudent_WehnSuccessful() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         StudentRequestDTO studentRequest = this.createStudentRequestDTO();
         Student studentToBeUpdated = this.createStudentToBeUpdated();
@@ -230,60 +229,86 @@ public class StudentServiceTest {
         Assertions.assertNotNull(updatedStudent.getAddress().getId());
         Assertions.assertEquals(updatedStudent.getAddress().getStreet(), studentRequest.getAddress().getStreet());
         Assertions.assertEquals(updatedStudent.getAddress().getNumber(), studentRequest.getAddress().getNumber());
-        Assertions.assertEquals(updatedStudent.getAddress().getNeighborhood(), studentRequest.getAddress().getNeighborhood());
-        Assertions.assertEquals(updatedStudent.getAddress().getComplement(), studentRequest.getAddress().getComplement());
+        Assertions.assertEquals(updatedStudent.getAddress().getNeighborhood(),
+                studentRequest.getAddress().getNeighborhood());
+        Assertions.assertEquals(updatedStudent.getAddress().getComplement(),
+                studentRequest.getAddress().getComplement());
         Assertions.assertNull(updatedStudent.getClassId());
-        Assertions.assertEquals(updatedStudent.getDateOfBirth(), LocalDate.parse(studentRequest.getDateOfBirth(), formatter));
+        Assertions.assertEquals(updatedStudent.getDateOfBirth(),
+                LocalDate.parse(studentRequest.getDateOfBirth(), formatter));
         Assertions.assertNotNull(updatedStudent.getUser().getId());
         Assertions.assertEquals(updatedStudent.getUser().getLogin(), studentRequest.getCpf());
         Assertions.assertEquals(updatedStudent.getUser().getPassword(), studentRequest.getPassword());
         Assertions.assertTrue(updatedStudent.getUser().getUserType().contains(UserTypeEnum.ROLE_STUDENT));
-        Assertions.assertAll( StreamUtils.<Responsible, ResponsibleRequestDTO, Executable>zip(updatedStudent.getResponsibles().stream(),  studentRequest.getResponsibles().stream(), (saved, request) -> {
-        return () -> {
-            Assertions.assertEquals(saved.getName(), request.getName());
-            Assertions.assertEquals(saved.getEmail(), request.getEmail());
-            Assertions.assertEquals(saved.getPhone(), request.getPhone());
-        
-        };
-    }).toArray(Executable[]::new)
-);
+        Assertions.assertAll(StreamUtils
+                .<Responsible, ResponsibleRequestDTO, Executable>zip(updatedStudent.getResponsibles().stream(),
+                        studentRequest.getResponsibles().stream(), (saved, request) -> {
+                            return () -> {
+                                Assertions.assertEquals(saved.getName(), request.getName());
+                                Assertions.assertEquals(saved.getEmail(), request.getEmail());
+                                Assertions.assertEquals(saved.getPhone(), request.getPhone());
+
+                            };
+                        })
+                .toArray(Executable[]::new));
 
         verify(studentRepository).save(any(Student.class));
-        verify(studentRepository).existsByCpf(anyString());
+        verify(studentRepository).findByCpf(anyString());
+        verify(studentRepository).findById(anyLong());
     }
 
     @Test
     void update_Throws_ConflictException_WhenCpfIsAlreadyInUse() {
         StudentRequestDTO studentRequest = this.createStudentRequestDTO();
-        when(studentRepository.existsByCpf(anyString())).thenReturn(true);
+        when(studentRepository.findById(anyLong())).thenReturn(Optional.of(this.createStudentToBeUpdated()));
+        when(studentRepository.findByCpf(anyString())).thenReturn(Optional.of(this.createStudent()));
 
         ConflictException conflictException = Assertions
                 .assertThrows(ConflictException.class,
-                        () -> studentService.save(studentRequest));
+                        () -> studentService.update(studentRequest, 2L));
 
         Assertions.assertTrue(conflictException.getMessage()
-                .contains("CPF is already in use by someone else"));
+                .contains("This cpf is already in use by someone else"));
 
         verify(studentRepository, times(0)).save(any(Student.class));
-        verify(studentRepository).existsByCpf(anyString());
+        verify(studentRepository).findByCpf(anyString());
+        verify(studentRepository).findById(anyLong());
 
     }
-
 
     @Test
     void update_Throws_BadRequestException_WhenDateOfBirthIsNotValid() {
         StudentRequestDTO studentRequest = this.createStudentRequestDTO();
+        when(studentRepository.findById(anyLong())).thenReturn(Optional.of(this.createStudentToBeUpdated()));
         studentRequest.setDateOfBirth("01/10/2100");
-        
+
         BadRequestException badRequestException = Assertions
                 .assertThrows(BadRequestException.class,
-                        () -> studentService.save(studentRequest));
+                        () -> studentService.update(studentRequest, 2L));
 
         Assertions.assertTrue(badRequestException.getMessage()
                 .contains("Invalid date of birth submitted"));
 
         verify(studentRepository, times(0)).save(any(Student.class));
-        verify(studentRepository).existsByCpf(anyString());
+        verify(studentRepository).findByCpf(anyString());
+        verify(studentRepository).findById(anyLong());
+
+    }
+
+    @Test
+    void update_Throws_ResourceNotFoundException_WhenStudentNotFound() {
+        StudentRequestDTO studentRequest = this.createStudentRequestDTO();
+
+        ResourceNotFoundException resourceNotFoundException = Assertions
+                .assertThrows(ResourceNotFoundException.class,
+                        () -> studentService.update(studentRequest, 2L));
+
+        Assertions.assertTrue(resourceNotFoundException.getMessage()
+                .contains("Student not found with the given id"));
+
+        verify(studentRepository, times(0)).save(any(Student.class));
+        verify(studentRepository, times(0)).findByCpf(anyString());
+        verify(studentRepository).findById(anyLong());
 
     }
 
@@ -296,7 +321,7 @@ public class StudentServiceTest {
         student.setDateOfBirth("22/02/2000");
         student.setPassword("student1234");
         student.setResponsibles(Set.of(this.createResponsibleRequestDTO()));
-        
+
         return student;
     }
 
@@ -331,7 +356,7 @@ public class StudentServiceTest {
         student.setUser(new User(1L, "807.292.180-07", "student1234", Set.of(UserTypeEnum.ROLE_STUDENT)));
         student.setResponsibles(Set.of(new Responsible(1L, "Mãe", "mae@gmail.com", "85 9999-9999")));
         student.setAddress(new Address(1L, "Rua A", 22, "Vizinhança", "perto dali"));
-        
+
         return student;
     }
 
@@ -350,5 +375,3 @@ public class StudentServiceTest {
     }
 
 }
-    
-
