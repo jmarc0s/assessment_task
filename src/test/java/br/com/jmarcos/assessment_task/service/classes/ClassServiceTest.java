@@ -7,6 +7,7 @@ import br.com.jmarcos.assessment_task.model.enums.ClassShiftEnum;
 import br.com.jmarcos.assessment_task.model.enums.ClassStatusEnum;
 import br.com.jmarcos.assessment_task.model.enums.SchoolSegmentEnum;
 
+import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -39,208 +40,203 @@ import br.com.jmarcos.assessment_task.service.exceptions.ResourceNotFoundExcepti
 @ExtendWith(MockitoExtension.class)
 public class ClassServiceTest {
 
-    @InjectMocks
-    private ClassService classService;
+        @InjectMocks
+        private ClassService classService;
 
-    @Mock
-    ClassRepository classRepository;
+        @Mock
+        ClassRepository classRepository;
 
-    @Mock
-    private StudentService studentService;
+        @Mock
+        private StudentService studentService;
+
+        @Test
+        void shouldReturnAListOfClassesWhenSuccessful() {
+                PageRequest pageable = PageRequest.of(0, 5);
+                List<Class> classList = List.of(this.createClass());
+                PageImpl<Class> classPage = new PageImpl<>(classList);
+                when(classRepository.findAll(pageable)).thenReturn(classPage);
+
+                Page<Class> all = classService.search(pageable);
+                List<Class> returnedCLassList = all.stream().toList();
+
+                Assertions.assertFalse(returnedCLassList.isEmpty());
+                Assertions.assertEquals(classList.get(0).getId(), returnedCLassList.get(0).getId());
+                Assertions.assertEquals(classList.get(0).getTitle(), returnedCLassList.get(0).getTitle());
+                Assertions.assertEquals(classList.get(0).getMaxStudents(), returnedCLassList.get(0).getMaxStudents());
+                Assertions.assertEquals(classList.get(0).getTeacherHolder(),
+                                returnedCLassList.get(0).getTeacherHolder());
+                Assertions.assertEquals(classList.get(0).getClassShift(), returnedCLassList.get(0).getClassShift());
+                Assertions.assertEquals(classList.get(0).getClassStatus(), returnedCLassList.get(0).getClassStatus());
+                Assertions.assertEquals(classList.get(0).getSchoolSegment(),
+                                returnedCLassList.get(0).getSchoolSegment());
+                Assertions.assertTrue(
+                                returnedCLassList.get(0).getStudents().containsAll(classList.get(0).getStudents()));
+
+                verify(classRepository).findAll(pageable);
+
+        }
+
+        @Test
+        void shouldReturnAnEmptyListOfClassesWhenThereAreNoClasses() {
+                PageRequest pageable = PageRequest.of(0, 5);
+                List<Class> classList = List.of();
+                PageImpl<Class> classPage = new PageImpl<>(classList);
+                when(classRepository.findAll(pageable)).thenReturn(classPage);
+
+                Page<Class> all = classService.search(pageable);
+                List<Class> returnedStudentList = all.stream().toList();
+
+                Assertions.assertTrue(returnedStudentList.isEmpty());
+                assertIterableEquals(classList, returnedStudentList);
+
+                verify(classRepository).findAll(pageable);
+
+        }
+
+        @Test
+        void shouldReturnAClassByIdWhenSuccessful() {
+                Class newClass = this.createClass();
+
+                when(classRepository.findById(anyLong()))
+                                .thenReturn(Optional.of(newClass));
+
+                Class returnedClass = this.classService
+                                .findById(1L);
+
+                Assertions.assertNotNull(newClass.getTitle(), returnedClass.getTitle());
+                Assertions.assertEquals(newClass.getTitle(), returnedClass.getTitle());
+                Assertions.assertEquals(newClass.getTeacherHolder(), returnedClass.getTeacherHolder());
+                Assertions.assertEquals(newClass.getMaxStudents(), returnedClass.getMaxStudents());
+                Assertions.assertEquals(newClass.getClassShift(), returnedClass.getClassShift());
+                Assertions.assertEquals(newClass.getClassStatus(), returnedClass.getClassStatus());
+                Assertions.assertEquals(newClass.getSchoolSegment(), returnedClass.getSchoolSegment());
+                Assertions.assertTrue(newClass.getStudents().containsAll(returnedClass.getStudents()));
+
+                verify(classRepository).findById(anyLong());
+
+        }
+
+        @Test
+        void shouldThrowsRuntimeExceptionWhenClassNotFound() {
+
+                Assertions.assertThrows(RuntimeException.class,
+                                () -> classService.findById(anyLong()));
+
+                verify(classRepository).findById(anyLong());
+
+        }
+
+        @Test
+        void shouldReturnASavedClassWhenSuccessful() {
+                ClassRequestDTO newClassRequest = this.createClassRequestDTO();
+                when(classRepository.save(any(Class.class))).thenReturn(this.createClass());
+                when(studentService.findById(anyLong())).thenReturn(this.createStudent());
+
+                Class savedClass = this.classService.save(newClassRequest);
+
+                Assertions.assertNotNull(savedClass.getId());
+                Assertions.assertEquals(newClassRequest.getTitle(), savedClass.getTitle());
+                Assertions.assertEquals(newClassRequest.getTeacherHolder(), savedClass.getTeacherHolder());
+                Assertions.assertEquals(newClassRequest.getMaxStudents(), savedClass.getMaxStudents());
+                Assertions.assertEquals(newClassRequest.getClassShift(), savedClass.getClassShift());
+                Assertions.assertEquals(newClassRequest.getClassStatus(), savedClass.getClassStatus());
+                Assertions.assertEquals(newClassRequest.getSchoolSegment(), savedClass.getSchoolSegment());
+                Assertions.assertEquals(newClassRequest.getStudentsId()
+                                .stream()
+                                .findFirst()
+                                .get(),
+                                savedClass.getStudents()
+                                                .stream()
+                                                .findFirst().get().getId());
+
+                verify(classRepository).save(any(Class.class));
+                verify(classRepository).findAllByTeacherHolder(anyString());
+                verify(studentService).findById(anyLong());
+                verify(studentService, times(1)).saveSettingClass(any(Student.class));
+
+        }
+
+        @Test
+        void shouldThrowsRuntimeExceptionWhenStatusIsInvalid() {
+                ClassRequestDTO newClassRequest = this.createClassRequestDTO();
+                newClassRequest.setTeacherHolder(null);
+
+                Assertions.assertThrows(RuntimeException.class,
+                                () -> classService.save(newClassRequest));
+
+                verify(classRepository, times(0)).save(any(Class.class));
+                verify(classRepository, times(0)).findAllByTeacherHolder(anyString());
+                verify(studentService, times(0)).findById(anyLong());
+                verify(studentService, times(0)).saveSettingClass(any(Student.class));
+
+        }
+
+        @Test
+        void shouldThrowsRuntimeExceptionWhenTeacherIsUnavailable() {
+                ClassRequestDTO newClassRequest = this.createClassRequestDTO();
+                when(classRepository.findAllByTeacherHolder(anyString())).thenReturn(List.of(this.createClass()));
+
+                Assertions.assertThrows(RuntimeException.class,
+                                () -> classService.save(newClassRequest));
+
+                verify(classRepository, times(0)).save(any(Class.class));
+                verify(classRepository, times(1)).findAllByTeacherHolder(anyString());
+                verify(studentService, times(0)).findById(anyLong());
+                verify(studentService, times(0)).saveSettingClass(any(Student.class));
+
+        }
+
+        @Test
+        void shouldThrowsRuntimeExceptionWhenStudentNotFound() {
+                ClassRequestDTO newClassRequest = this.createClassRequestDTO();
+                when(studentService.findById(anyLong()))
+                                .thenThrow(new ResourceNotFoundException("Student not found with the given id"));
+
+                Assertions.assertThrows(RuntimeException.class,
+                                () -> classService.save(newClassRequest));
+
+                verify(classRepository, times(0)).save(any(Class.class));
+                verify(classRepository, times(1)).findAllByTeacherHolder(anyString());
+                verify(studentService, times(1)).findById(anyLong());
+                verify(studentService, times(0)).saveSettingClass(any(Student.class));
+
+        }
+
+        @Test
+        void shouldThrowsRuntimeExceptionWhenStudentIsAlreadyAssignedToAnotherClass() {
+                ClassRequestDTO newClassRequest = this.createClassRequestDTO();
+                Student student = this.createStudent();
+                student.setClassId(this.createClass());
+                when(studentService.findById(anyLong())).thenReturn(student);
+
+                Assertions.assertThrows(RuntimeException.class,
+                                () -> classService.save(newClassRequest));
+
+                verify(classRepository, times(0)).save(any(Class.class));
+                verify(classRepository, times(1)).findAllByTeacherHolder(anyString());
+                verify(studentService, times(1)).findById(anyLong());
+                verify(studentService, times(0)).saveSettingClass(any(Student.class));
+
+        }
+
+        @Test
+        void shouldNotHaveAnyReturnWheSuccessful() {
+                Class classToDelete = this.createClass();
+                when(classRepository.findById(anyLong())).thenReturn(Optional.of(classToDelete));
+
+                this.classService.delete(1L);
+
+                verify(classRepository).findById(anyLong());
+                verify(classRepository).delete(any(Class.class));
+                verify(studentService).updateStudent(any(Student.class));
+        }
 
     @Test
-    void search_returns_AllClasses_WhenSuccessful() {
-        PageRequest pageable = PageRequest.of(0, 5);
-        List<Class> classList = List.of(this.createClass());
-        PageImpl<Class> classPage = new PageImpl<>(classList);
-        when(classRepository.findAll(pageable)).thenReturn(classPage);
-
-        Page<Class> all = classService.search(pageable);
-        List<Class> returnedCLassList = all.stream().toList();
-
-        Assertions.assertFalse(returnedCLassList.isEmpty());
-        Assertions.assertEquals(classList.get(0).getId(), returnedCLassList.get(0).getId());
-        Assertions.assertEquals(classList.get(0).getTitle(), returnedCLassList.get(0).getTitle());
-        Assertions.assertEquals(classList.get(0).getMaxStudents(), returnedCLassList.get(0).getMaxStudents());
-        Assertions.assertEquals(classList.get(0).getTeacherHolder(), returnedCLassList.get(0).getTeacherHolder());
-        Assertions.assertEquals(classList.get(0).getClassShift(), returnedCLassList.get(0).getClassShift());
-        Assertions.assertEquals(classList.get(0).getClassStatus(), returnedCLassList.get(0).getClassStatus());
-        Assertions.assertEquals(classList.get(0).getSchoolSegment(), returnedCLassList.get(0).getSchoolSegment());
-        Assertions.assertTrue(returnedCLassList.get(0).getStudents().containsAll(classList.get(0).getStudents()));
-
-        verify(classRepository).findAll(pageable);
-
-    }
-
-    @Test
-    void findById_returns_AClass_WhenSuccessful() {
-        Class newClass = this.createClass();
-
-        when(classRepository.findById(anyLong()))
-                .thenReturn(Optional.of(newClass));
-
-        Class returnedClass = this.classService
-                .findById(1L);
-
-        Assertions.assertNotNull(newClass.getTitle(), returnedClass.getTitle());
-        Assertions.assertEquals(newClass.getTitle(), returnedClass.getTitle());
-        Assertions.assertEquals(newClass.getTeacherHolder(), returnedClass.getTeacherHolder());
-        Assertions.assertEquals(newClass.getMaxStudents(), returnedClass.getMaxStudents());
-        Assertions.assertEquals(newClass.getClassShift(), returnedClass.getClassShift());
-        Assertions.assertEquals(newClass.getClassStatus(), returnedClass.getClassStatus());
-        Assertions.assertEquals(newClass.getSchoolSegment(), returnedClass.getSchoolSegment());
-        Assertions.assertTrue(newClass.getStudents().containsAll(returnedClass.getStudents()));
-
-        verify(classRepository).findById(anyLong());
-
-    }
-
-    @Test
-    void findById_Throws_ResourceNotFoundException_WhenClassNotFound() {
-
-        ResourceNotFoundException resourceNotFoundException = Assertions
-                .assertThrows(ResourceNotFoundException.class,
-                        () -> classService.findById(anyLong()));
-
-        Assertions.assertTrue(resourceNotFoundException.getMessage()
-                .contains("Class not found with the given id"));
-
-        verify(classRepository).findById(anyLong());
-
-    }
-
-    @Test
-    void save_Returns_ASavedClas_WhenSuccessful() {
-        ClassRequestDTO newClassRequest = this.createClassRequestDTO();
-        when(classRepository.save(any(Class.class))).thenReturn(this.createClass());
-        when(studentService.findById(anyLong())).thenReturn(this.createStudent());
-
-        Class savedClass = this.classService.save(newClassRequest);
-
-        Assertions.assertNotNull(savedClass.getId());
-        Assertions.assertEquals(savedClass.getTitle(), newClassRequest.getTitle());
-        Assertions.assertEquals(savedClass.getTeacherHolder(), newClassRequest.getTeacherHolder());
-        Assertions.assertEquals(savedClass.getMaxStudents(), newClassRequest.getMaxStudents());
-        Assertions.assertEquals(savedClass.getClassShift(), newClassRequest.getClassShift());
-        Assertions.assertEquals(savedClass.getClassStatus(), newClassRequest.getClassStatus());
-        Assertions.assertEquals(savedClass.getSchoolSegment(), newClassRequest.getSchoolSegment());
-        Assertions.assertEquals(savedClass.getStudents()
-                .stream()
-                .findFirst()
-                .get()
-                .getId(),
-                newClassRequest.getStudentsId()
-                        .stream()
-                        .findFirst().get());
-
-        verify(classRepository).save(any(Class.class));
-        verify(classRepository).findAllByTeacherHolder(anyString());
-        verify(studentService).findById(anyLong());
-        verify(studentService, times(1)).saveSettingClass(any(Student.class));
-
-    }
-
-    @Test
-    void save_Throws_BadRequestException_WhenStatusIsInvalid() {
-        ClassRequestDTO newClassRequest = this.createClassRequestDTO();
-        newClassRequest.setTeacherHolder(null);
-
-        BadRequestException badRequestException = Assertions
-                .assertThrows(BadRequestException.class,
-                        () -> classService.save(newClassRequest));
-
-        Assertions.assertTrue(badRequestException.getMessage()
-                .contains("The class cannot be active if it does not have a teacher"));
-
-        verify(classRepository, times(0)).save(any(Class.class));
-        verify(classRepository, times(0)).findAllByTeacherHolder(anyString());
-        verify(studentService, times(0)).findById(anyLong());
-        verify(studentService, times(0)).saveSettingClass(any(Student.class));
-
-    }
-
-    @Test
-    void save_Throws_ConflictException_WhenTeacherIsUnavailable() {
-        ClassRequestDTO newClassRequest = this.createClassRequestDTO();
-        when(classRepository.findAllByTeacherHolder(anyString())).thenReturn(List.of(this.createClass()));
-
-        ConflictException conflictException = Assertions
-                .assertThrows(ConflictException.class,
-                        () -> classService.save(newClassRequest));
-
-        Assertions.assertTrue(conflictException.getMessage()
-                .contains("This teacher cannot be assigned to this class this shift"));
-
-        verify(classRepository, times(0)).save(any(Class.class));
-        verify(classRepository, times(1)).findAllByTeacherHolder(anyString());
-        verify(studentService, times(0)).findById(anyLong());
-        verify(studentService, times(0)).saveSettingClass(any(Student.class));
-
-    }
-
-    @Test
-    void save_Throws_ResourceNotFoundException_WhenStudentNotFound() {
-        ClassRequestDTO newClassRequest = this.createClassRequestDTO();
-        when(studentService.findById(anyLong()))
-                .thenThrow(new ResourceNotFoundException("Student not found with the given id"));
-
-        ResourceNotFoundException resourceNotFoundException = Assertions
-                .assertThrows(ResourceNotFoundException.class,
-                        () -> classService.save(newClassRequest));
-
-        Assertions.assertTrue(resourceNotFoundException.getMessage()
-                .contains("Student not found with the given id"));
-
-        verify(classRepository, times(0)).save(any(Class.class));
-        verify(classRepository, times(1)).findAllByTeacherHolder(anyString());
-        verify(studentService, times(1)).findById(anyLong());
-        verify(studentService, times(0)).saveSettingClass(any(Student.class));
-
-    }
-
-    @Test
-    void save_Throws_ConflictException_WhenStudentIsAlreadyAssignedToAnotherClass() {
-        ClassRequestDTO newClassRequest = this.createClassRequestDTO();
-        Student student = this.createStudent();
-        student.setClassId(this.createClass());
-        when(studentService.findById(anyLong())).thenReturn(student);
-
-        ConflictException conflictException = Assertions
-                .assertThrows(ConflictException.class,
-                        () -> classService.save(newClassRequest));
-
-        Assertions.assertTrue(conflictException.getMessage()
-                .contains("This student is already allocated to another class"));
-
-        verify(classRepository, times(0)).save(any(Class.class));
-        verify(classRepository, times(1)).findAllByTeacherHolder(anyString());
-        verify(studentService, times(1)).findById(anyLong());
-        verify(studentService, times(0)).saveSettingClass(any(Student.class));
-
-    }
-
-    @Test
-    void delete_Returns_Void_WhenSuccessful() {
-        Class classToDelete = this.createClass();
-        when(classRepository.findById(anyLong())).thenReturn(Optional.of(classToDelete));
-
-        this.classService.delete(1L);
-
-        verify(classRepository).findById(anyLong());
-        verify(classRepository).delete(any(Class.class));
-        verify(studentService).updateStudent(any(Student.class));
-    }
-
-    @Test
-    void delete_Throws_ResourceNotFoundException_WhenClassNotFound() {
+    void shouldThrowsRuntimeExceptionWhenClassNotFoundOnDelete() {
         when(classRepository.findById(anyLong())).thenReturn(Optional.empty());
 
-        ResourceNotFoundException resourceNotFoundException = Assertions
-                .assertThrows(ResourceNotFoundException.class,
+        Assertions.assertThrows(RuntimeException.class,
                         () -> classService.delete(anyLong()));
-
-            Assertions.assertTrue(resourceNotFoundException.getMessage()
-                .contains("Class not found with the given id"));
 
         verify(classRepository, times(1)).findById(anyLong());
         verify(classRepository, times(0)).delete(any(Class.class));
@@ -248,181 +244,164 @@ public class ClassServiceTest {
         
     }
 
-    @Test
-    void update_Returns_AUpdatedClass_WhenSuccessful() {
-        ClassRequestDTO classUpdateRequest = this.createClassRequestDTO();
-        Class classToBeUpdated = this.createClassToBeUpdated();
-        when(classRepository.findById(anyLong())).thenReturn(Optional.of(classToBeUpdated));
-        when(classRepository.save(any(Class.class))).thenReturn(classToBeUpdated);
-        when(studentService.findById(anyLong())).thenReturn(this.createStudent());
+        @Test
+        void shouldReturnAnUpdatedClassWhenSuccessful() {
+                ClassRequestDTO classUpdateRequest = this.createClassRequestDTO();
+                Class classToBeUpdated = this.createClassToBeUpdated();
+                when(classRepository.findById(anyLong())).thenReturn(Optional.of(classToBeUpdated));
+                when(classRepository.save(any(Class.class))).thenReturn(classToBeUpdated);
+                when(studentService.findById(anyLong())).thenReturn(this.createStudent());
 
-        Class updatedClass = this.classService.update(classUpdateRequest, 2L);
+                Class updatedClass = this.classService.update(classUpdateRequest, 2L);
 
-        Assertions.assertEquals(updatedClass.getId(), classToBeUpdated.getId());
-        Assertions.assertEquals(updatedClass.getTitle(), classUpdateRequest.getTitle());
-        Assertions.assertEquals(updatedClass.getTeacherHolder(), classUpdateRequest.getTeacherHolder());
-        Assertions.assertEquals(updatedClass.getMaxStudents(), classUpdateRequest.getMaxStudents());
-        Assertions.assertEquals(updatedClass.getClassShift(), classUpdateRequest.getClassShift());
-        Assertions.assertEquals(updatedClass.getClassStatus(), classUpdateRequest.getClassStatus());
-        Assertions.assertEquals(updatedClass.getSchoolSegment(), classUpdateRequest.getSchoolSegment());
-        Assertions.assertEquals(updatedClass.getStudents()
-                .stream()
-                .findFirst()
-                .get()
-                .getId(),
-                classUpdateRequest.getStudentsId()
-                        .stream()
-                        .findFirst().get());
+                Assertions.assertEquals(classToBeUpdated.getId(), updatedClass.getId());
+                Assertions.assertEquals(classUpdateRequest.getTitle(), updatedClass.getTitle());
+                Assertions.assertEquals(classUpdateRequest.getTeacherHolder(), updatedClass.getTeacherHolder());
+                Assertions.assertEquals(classUpdateRequest.getMaxStudents(), updatedClass.getMaxStudents());
+                Assertions.assertEquals(classUpdateRequest.getClassShift(), updatedClass.getClassShift());
+                Assertions.assertEquals(classUpdateRequest.getClassStatus(), updatedClass.getClassStatus());
+                Assertions.assertEquals(classUpdateRequest.getSchoolSegment(), updatedClass.getSchoolSegment());
+                Assertions.assertEquals(classUpdateRequest.getStudentsId()
+                                .stream()
+                                .findFirst()
+                                .get(),
+                                updatedClass.getStudents()
+                                                .stream()
+                                                .findFirst().get().getId());
 
-        verify(classRepository).save(any(Class.class));
-        verify(classRepository, times(1)).findById(anyLong());
-        verify(classRepository).findAllByTeacherHolder(anyString());
-        verify(studentService).findById(anyLong());
-        verify(studentService, times(2)).saveSettingClass(any(Student.class));
+                verify(classRepository).save(any(Class.class));
+                verify(classRepository, times(1)).findById(anyLong());
+                verify(classRepository).findAllByTeacherHolder(anyString());
+                verify(studentService).findById(anyLong());
+                verify(studentService, times(2)).saveSettingClass(any(Student.class));
 
-    }
+        }
 
-    @Test
-    void update_Throws_BadRequestException_WhenStatusIsInvalid() {
-        ClassRequestDTO classUpdateRequest = this.createClassRequestDTO();
-        Class classToBeUpdated = this.createClassToBeUpdated();
-        when(classRepository.findById(anyLong())).thenReturn(Optional.of(classToBeUpdated));
-        classUpdateRequest.setTeacherHolder(null);
+        @Test
+        void shouldThrowsRuntimeExceptionWhenStatusIsInvalidOnUpdate() {
+                ClassRequestDTO classUpdateRequest = this.createClassRequestDTO();
+                Class classToBeUpdated = this.createClassToBeUpdated();
+                when(classRepository.findById(anyLong())).thenReturn(Optional.of(classToBeUpdated));
+                classUpdateRequest.setTeacherHolder(null);
 
-        BadRequestException badRequestException = Assertions
-                .assertThrows(BadRequestException.class,
-                        () -> classService.update(classUpdateRequest, 2L));
+                Assertions.assertThrows(RuntimeException.class,
+                                () -> classService.update(classUpdateRequest, 2L));
 
-        Assertions.assertTrue(badRequestException.getMessage()
-                .contains("The class cannot be active if it does not have a teacher"));
+                verify(classRepository, times(0)).save(any(Class.class));
+                verify(classRepository, times(1)).findById(anyLong());
+                verify(classRepository, times(0)).findAllByTeacherHolder(anyString());
+                verify(studentService, times(0)).findById(anyLong());
+                verify(studentService, times(0)).saveSettingClass(any(Student.class));
 
-        verify(classRepository, times(0)).save(any(Class.class));
-        verify(classRepository, times(1)).findById(anyLong());
-        verify(classRepository, times(0)).findAllByTeacherHolder(anyString());
-        verify(studentService, times(0)).findById(anyLong());
-        verify(studentService, times(0)).saveSettingClass(any(Student.class));
+        }
 
-    }
+        @Test
+        void shouldThrowsRuntimeExceptionWhenTeacherIsUnavailableOnUpdate() {
+                ClassRequestDTO newClassRequest = this.createClassRequestDTO();
+                Class classToBeUpdated = this.createClassToBeUpdated();
+                when(classRepository.findById(anyLong())).thenReturn(Optional.of(classToBeUpdated));
+                when(classRepository.findAllByTeacherHolder(anyString())).thenReturn(Arrays.asList(this.createClass()));
 
-    @Test
-    void update_Throws_ConflictException_WhenTeacherIsUnavailable() {
-        ClassRequestDTO newClassRequest = this.createClassRequestDTO();
-        Class classToBeUpdated = this.createClassToBeUpdated();
-        when(classRepository.findById(anyLong())).thenReturn(Optional.of(classToBeUpdated));
-        when(classRepository.findAllByTeacherHolder(anyString())).thenReturn(Arrays.asList(this.createClass()));
+                Assertions.assertThrows(RuntimeException.class,
+                                () -> classService.update(newClassRequest, 2L));
 
-        ConflictException conflictException = Assertions
-                .assertThrows(ConflictException.class,
-                        () -> classService.update(newClassRequest, 2L));
+                verify(classRepository, times(0)).save(any(Class.class));
+                verify(classRepository, times(1)).findById(anyLong());
+                verify(classRepository, times(1)).findAllByTeacherHolder(anyString());
+                verify(studentService, times(0)).findById(anyLong());
+                verify(studentService, times(0)).saveSettingClass(any(Student.class));
 
-        Assertions.assertTrue(conflictException.getMessage()
-                .contains("This teacher cannot be assigned to this class this shift"));
+        }
 
-        verify(classRepository, times(0)).save(any(Class.class));
-        verify(classRepository, times(1)).findById(anyLong());
-        verify(classRepository, times(1)).findAllByTeacherHolder(anyString());
-        verify(studentService, times(0)).findById(anyLong());
-        verify(studentService, times(0)).saveSettingClass(any(Student.class));
+        @Test
+        void shouldThrowsRuntimeExceptionWhenClassNotFoundOnUpdate() {
+                ClassRequestDTO newClassRequest = this.createClassRequestDTO();
 
-    }
+                Assertions.assertThrows(RuntimeException.class,
+                                () -> classService.update(newClassRequest, 2L));
 
-    @Test
-    void update_Throws_ResourceNotFoundException_WhenClassNotFound() {
-        ClassRequestDTO newClassRequest = this.createClassRequestDTO();
+                verify(classRepository, times(0)).save(any(Class.class));
+                verify(classRepository, times(0)).findAllByTeacherHolder(anyString());
+                verify(classRepository, times(1)).findById(anyLong());
+                verify(studentService, times(0)).findById(anyLong());
+                verify(studentService, times(0)).saveSettingClass(any(Student.class));
 
-        ResourceNotFoundException resourceNotFoundException = Assertions
-                .assertThrows(ResourceNotFoundException.class,
-                        () -> classService.update(newClassRequest, 2L));
+        }
 
-        Assertions.assertTrue(resourceNotFoundException.getMessage()
-                .contains("Class not found with the given id"));
+        @Test
+        void shouldThrowsRuntimeExceptionWhenStudentIsAlreadyAssignedToAnotherClassOnUpdate() {
+                ClassRequestDTO classUpdateRequest = this.createClassRequestDTO();
+                Class classToBeUpdated = this.createClassToBeUpdated();
+                Student student = this.createStudent();
+                student.setClassId(this.createClass());
+                when(classRepository.findById(anyLong())).thenReturn(Optional.of(classToBeUpdated));
+                when(studentService.findById(anyLong())).thenReturn(student);
 
-        verify(classRepository, times(0)).save(any(Class.class));
-        verify(classRepository, times(0)).findAllByTeacherHolder(anyString());
-        verify(classRepository, times(1)).findById(anyLong());
-        verify(studentService, times(0)).findById(anyLong());
-        verify(studentService, times(0)).saveSettingClass(any(Student.class));
+                Assertions.assertThrows(RuntimeException.class,
+                                () -> classService.update(classUpdateRequest, 2L));
 
-    }
+                verify(classRepository, times(1)).findById(anyLong());
+                verify(classRepository, times(0)).save(any(Class.class));
+                verify(classRepository, times(1)).findAllByTeacherHolder(anyString());
+                verify(studentService, times(1)).findById(anyLong());
+                verify(studentService, times(0)).saveSettingClass(any(Student.class));
 
-    @Test
-    void update_Throws_ConflictException_WhenStudentIsAlreadyAssignedToAnotherClass() {
-        ClassRequestDTO classUpdateRequest = this.createClassRequestDTO();
-        Class classToBeUpdated = this.createClassToBeUpdated();
-        Student student = this.createStudent();
-        student.setClassId(this.createClass());
-        when(classRepository.findById(anyLong())).thenReturn(Optional.of(classToBeUpdated));
-        when(studentService.findById(anyLong())).thenReturn(student);
+        }
 
-        ConflictException conflictException = Assertions
-                .assertThrows(ConflictException.class,
-                        () -> classService.update(classUpdateRequest, 2L));
+        ClassRequestDTO createClassRequestDTO() {
+                ClassRequestDTO newClass = new ClassRequestDTO();
 
-        Assertions.assertTrue(conflictException.getMessage()
-                .contains("This student is already allocated to another class"));
+                newClass.setTitle("Turma A");
+                newClass.setClassShift(ClassShiftEnum.MORNINGSHIFT);
+                newClass.setClassStatus(ClassStatusEnum.ACTIVE);
+                newClass.setTeacherHolder("Professor A");
+                newClass.setSchoolSegment(SchoolSegmentEnum.FIFTHCHILDISH);
+                newClass.setMaxStudents(30);
+                newClass.setStudentsId(Set.of(1L));
 
-        verify(classRepository, times(1)).findById(anyLong());
-        verify(classRepository, times(0)).save(any(Class.class));
-        verify(classRepository, times(1)).findAllByTeacherHolder(anyString());
-        verify(studentService, times(1)).findById(anyLong());
-        verify(studentService, times(0)).saveSettingClass(any(Student.class));
+                return newClass;
+        }
 
-    }
+        Class createClass() {
+                Class newClass = new Class();
 
-    ClassRequestDTO createClassRequestDTO() {
-        ClassRequestDTO newClass = new ClassRequestDTO();
+                newClass.setId(1L);
+                newClass.setTitle("Turma A");
+                newClass.setClassShift(ClassShiftEnum.MORNINGSHIFT);
+                newClass.setClassStatus(ClassStatusEnum.ACTIVE);
+                newClass.setTeacherHolder("Professor A");
+                newClass.setSchoolSegment(SchoolSegmentEnum.FIFTHCHILDISH);
+                newClass.setMaxStudents(30);
+                newClass.setStudents(Set.of(this.createStudent()));
 
-        newClass.setTitle("Turma A");
-        newClass.setClassShift(ClassShiftEnum.MORNINGSHIFT);
-        newClass.setClassStatus(ClassStatusEnum.ACTIVE);
-        newClass.setTeacherHolder("Professor A");
-        newClass.setSchoolSegment(SchoolSegmentEnum.FIFTHCHILDISH);
-        newClass.setMaxStudents(30);
-        newClass.setStudentsId(Set.of(1L));
+                return newClass;
+        }
 
-        return newClass;
-    }
+        Class createClassToBeUpdated() {
+                Class newClass = new Class();
 
-    Class createClass() {
-        Class newClass = new Class();
+                newClass.setId(2L);
+                newClass.setTitle("Turma para ser atualizada");
+                newClass.setClassShift(ClassShiftEnum.AFTERNOONSHIFT);
+                newClass.setClassStatus(ClassStatusEnum.PLANNING);
+                newClass.setTeacherHolder("professor a ser atualizado");
+                newClass.setSchoolSegment(SchoolSegmentEnum.SECONDCHILDISH);
+                newClass.setMaxStudents(40);
+                newClass.setStudents(Set.of(this.createStudentToBeUpdate()));
 
-        newClass.setId(1L);
-        newClass.setTitle("Turma A");
-        newClass.setClassShift(ClassShiftEnum.MORNINGSHIFT);
-        newClass.setClassStatus(ClassStatusEnum.ACTIVE);
-        newClass.setTeacherHolder("Professor A");
-        newClass.setSchoolSegment(SchoolSegmentEnum.FIFTHCHILDISH);
-        newClass.setMaxStudents(30);
-        newClass.setStudents(Set.of(this.createStudent()));
+                return newClass;
+        }
 
-        return newClass;
-    }
+        private Student createStudentToBeUpdate() {
+                Student student = new Student();
+                student.setId(2L);
+                return student;
+        }
 
-    Class createClassToBeUpdated() {
-        Class newClass = new Class();
-
-        newClass.setId(2L);
-        newClass.setTitle("Turma para ser atualizada");
-        newClass.setClassShift(ClassShiftEnum.AFTERNOONSHIFT);
-        newClass.setClassStatus(ClassStatusEnum.PLANNING);
-        newClass.setTeacherHolder("professor a ser atualizado");
-        newClass.setSchoolSegment(SchoolSegmentEnum.SECONDCHILDISH);
-        newClass.setMaxStudents(40);
-        newClass.setStudents(Set.of(this.createStudentToBeUpdate()));
-
-        return newClass;
-    }
-
-    private Student createStudentToBeUpdate() {
-        Student student = new Student();
-        student.setId(2L);
-        return student;
-    }
-
-    private Student createStudent() {
-        Student student = new Student();
-        student.setId(1L);
-        return student;
-    }
+        private Student createStudent() {
+                Student student = new Student();
+                student.setId(1L);
+                return student;
+        }
 
 }

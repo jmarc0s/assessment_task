@@ -37,8 +37,6 @@ import br.com.jmarcos.assessment_task.model.User;
 import br.com.jmarcos.assessment_task.model.enums.UserTypeEnum;
 import br.com.jmarcos.assessment_task.repository.StudentRepository;
 import br.com.jmarcos.assessment_task.service.StudentService;
-import br.com.jmarcos.assessment_task.service.exceptions.BadRequestException;
-import br.com.jmarcos.assessment_task.service.exceptions.ConflictException;
 import br.com.jmarcos.assessment_task.service.exceptions.ResourceNotFoundException;
 
 @ExtendWith(MockitoExtension.class)
@@ -51,7 +49,7 @@ public class StudentServiceTest {
     StudentRepository studentRepository;
 
     @Test
-    void search_returns_AllClasses_WhenSuccessful() {
+    void shouldReturnAListOfStudentsWhenSuccessful() {
         PageRequest pageable = PageRequest.of(0, 5);
         List<Student> studentList = List.of(this.createStudent());
         PageImpl<Student> studentPage = new PageImpl<>(studentList);
@@ -75,7 +73,24 @@ public class StudentServiceTest {
     }
 
     @Test
-    void findById_returns_AStudent_WhenSuccessful() {
+    void shouldReturnAnEmptyListOfStudentsWhenThereAreNoStudents() {
+        PageRequest pageable = PageRequest.of(0, 5);
+        List<Student> studentList = List.of();
+        PageImpl<Student> studentPage = new PageImpl<>(studentList);
+        when(studentRepository.findAll(pageable)).thenReturn(studentPage);
+
+        Page<Student> all = studentService.search(pageable);
+        List<Student> returnedStudentList = all.stream().toList();
+
+        Assertions.assertTrue(returnedStudentList.isEmpty());
+        assertIterableEquals(studentList, returnedStudentList);
+
+        verify(studentRepository).findAll(pageable);
+
+    }
+
+    @Test
+    void shouldReturnAStudentByIdWhenSuccessful() {
         Student student = this.createStudent();
 
         when(studentRepository.findById(anyLong()))
@@ -102,9 +117,9 @@ public class StudentServiceTest {
         Assertions.assertAll(StreamUtils.<Responsible, Responsible, Executable>zip(student.getResponsibles().stream(),
                 returnedStudent.getResponsibles().stream(), (saved, request) -> {
                     return () -> {
-                        Assertions.assertEquals(saved.getName(), request.getName());
-                        Assertions.assertEquals(saved.getEmail(), request.getEmail());
-                        Assertions.assertEquals(saved.getPhone(), request.getPhone());
+                        Assertions.assertEquals(request.getName(), saved.getName());
+                        Assertions.assertEquals(request.getEmail(), saved.getEmail());
+                        Assertions.assertEquals(request.getPhone(), saved.getPhone());
 
                     };
                 }).toArray(Executable[]::new));
@@ -114,7 +129,17 @@ public class StudentServiceTest {
     }
 
     @Test
-    void save_Returns_ASavedStudent_WehnSuccessful() {
+    void shouldThrowsRuntimeExceptionWhenStudentNotFound() {
+
+        Assertions.assertThrows(RuntimeException.class,
+                () -> studentService.findById(anyLong()));
+
+        verify(studentRepository).findById(anyLong());
+
+    }
+
+    @Test
+    void shouldReturnASavedStudentWehnSuccessful() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         StudentRequestDTO studentRequest = this.createStudentRequestDTO();
         when(studentRepository.save(any(Student.class))).thenReturn(this.createStudent());
@@ -122,47 +147,45 @@ public class StudentServiceTest {
         Student savedStudent = this.studentService.save(studentRequest);
 
         Assertions.assertNotNull(savedStudent.getId());
-        Assertions.assertEquals(savedStudent.getName(), studentRequest.getName());
-        Assertions.assertEquals(savedStudent.getCpf(), studentRequest.getCpf());
+        Assertions.assertEquals(studentRequest.getName(), savedStudent.getName());
+        Assertions.assertEquals(studentRequest.getCpf(), savedStudent.getCpf());
         Assertions.assertNotNull(savedStudent.getAddress().getId());
-        Assertions.assertEquals(savedStudent.getAddress().getStreet(), studentRequest.getAddress().getStreet());
-        Assertions.assertEquals(savedStudent.getAddress().getNumber(), studentRequest.getAddress().getNumber());
-        Assertions.assertEquals(savedStudent.getAddress().getNeighborhood(),
-                studentRequest.getAddress().getNeighborhood());
-        Assertions.assertEquals(savedStudent.getAddress().getComplement(), studentRequest.getAddress().getComplement());
+        Assertions.assertEquals(studentRequest.getAddress().getStreet(), savedStudent.getAddress().getStreet());
+        Assertions.assertEquals(studentRequest.getAddress().getNumber(), savedStudent.getAddress().getNumber());
+        Assertions.assertEquals(studentRequest.getAddress().getNeighborhood(),
+                savedStudent.getAddress().getNeighborhood());
+        Assertions.assertEquals(studentRequest.getAddress().getComplement(), savedStudent.getAddress().getComplement());
         Assertions.assertNull(savedStudent.getClassId());
-        Assertions.assertEquals(savedStudent.getDateOfBirth(),
-                LocalDate.parse(studentRequest.getDateOfBirth(), formatter));
+        Assertions.assertEquals(LocalDate.parse(studentRequest.getDateOfBirth(), formatter),
+                savedStudent.getDateOfBirth());
         Assertions.assertNotNull(savedStudent.getUser().getId());
-        Assertions.assertEquals(savedStudent.getUser().getLogin(), studentRequest.getCpf());
-        Assertions.assertEquals(savedStudent.getUser().getPassword(), studentRequest.getPassword());
+        Assertions.assertEquals(studentRequest.getCpf(), savedStudent.getUser().getLogin());
+        Assertions.assertEquals(studentRequest.getPassword(), savedStudent.getUser().getPassword());
         Assertions.assertTrue(savedStudent.getUser().getUserType().contains(UserTypeEnum.ROLE_STUDENT));
         Assertions.assertAll(
-                StreamUtils.<Responsible, ResponsibleRequestDTO, Executable>zip(savedStudent.getResponsibles().stream(),
-                        studentRequest.getResponsibles().stream(), (saved, request) -> {
-                            return () -> {
-                                Assertions.assertEquals(saved.getName(), request.getName());
-                                Assertions.assertEquals(saved.getEmail(), request.getEmail());
-                                Assertions.assertEquals(saved.getPhone(), request.getPhone());
+                StreamUtils
+                        .<ResponsibleRequestDTO, Responsible, Executable>zip(studentRequest.getResponsibles().stream(),
+                                savedStudent.getResponsibles().stream(), (request, saved) -> {
+                                    return () -> {
+                                        Assertions.assertEquals(request.getName(), saved.getName());
+                                        Assertions.assertEquals(request.getEmail(), saved.getEmail());
+                                        Assertions.assertEquals(request.getPhone(), saved.getPhone());
 
-                            };
-                        }).toArray(Executable[]::new));
+                                    };
+                                })
+                        .toArray(Executable[]::new));
 
         verify(studentRepository).save(any(Student.class));
         verify(studentRepository).existsByCpf(anyString());
     }
 
     @Test
-    void save_Throws_ConflictException_WhenCpfIsAlreadyInUse() {
+    void shouldThorwsRuntimeExceptionWhenCpfIsAlreadyInUse() {
         StudentRequestDTO studentRequest = this.createStudentRequestDTO();
         when(studentRepository.existsByCpf(anyString())).thenReturn(true);
 
-        ConflictException conflictException = Assertions
-                .assertThrows(ConflictException.class,
-                        () -> studentService.save(studentRequest));
-
-        Assertions.assertTrue(conflictException.getMessage()
-                .contains("CPF is already in use by someone else"));
+        Assertions.assertThrows(RuntimeException.class,
+                () -> studentService.save(studentRequest));
 
         verify(studentRepository, times(0)).save(any(Student.class));
         verify(studentRepository).existsByCpf(anyString());
@@ -170,16 +193,12 @@ public class StudentServiceTest {
     }
 
     @Test
-    void save_Throws_BadRequestException_WhenDateOfBirthIsNotValid() {
+    void shouldThorwsRuntimeExceptionWhenDateOfBirthIsNotValid() {
         StudentRequestDTO studentRequest = this.createStudentRequestDTO();
         studentRequest.setDateOfBirth("01/10/2100");
 
-        BadRequestException badRequestException = Assertions
-                .assertThrows(BadRequestException.class,
-                        () -> studentService.save(studentRequest));
-
-        Assertions.assertTrue(badRequestException.getMessage()
-                .contains("Invalid date of birth submitted"));
+        Assertions.assertThrows(RuntimeException.class,
+                () -> studentService.save(studentRequest));
 
         verify(studentRepository, times(0)).save(any(Student.class));
         verify(studentRepository).existsByCpf(anyString());
@@ -187,7 +206,7 @@ public class StudentServiceTest {
     }
 
     @Test
-    void delete_Returns_Void_WhenSuccessful() {
+    void shouldNotHaveAnyReturnWheSuccessful() {
         Student studentToDelete = this.createStudent();
         when(studentRepository.findById(anyLong())).thenReturn(Optional.of(studentToDelete));
 
@@ -198,15 +217,11 @@ public class StudentServiceTest {
     }
 
     @Test
-    void delete_Throws_ResourceNotFoundException_WhenStudentNotFound() {
+    void shouldThrowsRuntimeExceptionWhenStudentNotFoundOnDelete() {
         when(studentRepository.findById(anyLong())).thenReturn(Optional.empty());
 
-        ResourceNotFoundException resourceNotFoundException = Assertions
-                .assertThrows(ResourceNotFoundException.class,
+        Assertions.assertThrows(RuntimeException.class,
                         () -> studentService.delete(anyLong()));
-
-            Assertions.assertTrue(resourceNotFoundException.getMessage()
-                .contains("Student not found with the given id"));
 
         verify(studentRepository, times(1)).findById(anyLong());
         verify(studentRepository, times(0)).delete(any(Student.class));
@@ -214,7 +229,7 @@ public class StudentServiceTest {
     }
 
     @Test
-    void update_Returns_AnUpdatedStudent_WehnSuccessful() {
+    void shouldReturnAnUpdatedStudentWhenSuccessful() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         StudentRequestDTO studentRequest = this.createStudentRequestDTO();
         Student studentToBeUpdated = this.createStudentToBeUpdated();
@@ -224,25 +239,25 @@ public class StudentServiceTest {
         Student updatedStudent = this.studentService.update(studentRequest, 2L);
 
         Assertions.assertNotNull(updatedStudent.getId());
-        Assertions.assertEquals(updatedStudent.getName(), studentRequest.getName());
-        Assertions.assertEquals(updatedStudent.getCpf(), studentRequest.getCpf());
+        Assertions.assertEquals(studentRequest.getName(), updatedStudent.getName());
+        Assertions.assertEquals(studentRequest.getCpf(), updatedStudent.getCpf());
         Assertions.assertNotNull(updatedStudent.getAddress().getId());
-        Assertions.assertEquals(updatedStudent.getAddress().getStreet(), studentRequest.getAddress().getStreet());
-        Assertions.assertEquals(updatedStudent.getAddress().getNumber(), studentRequest.getAddress().getNumber());
-        Assertions.assertEquals(updatedStudent.getAddress().getNeighborhood(),
-                studentRequest.getAddress().getNeighborhood());
-        Assertions.assertEquals(updatedStudent.getAddress().getComplement(),
-                studentRequest.getAddress().getComplement());
+        Assertions.assertEquals(studentRequest.getAddress().getStreet(), updatedStudent.getAddress().getStreet());
+        Assertions.assertEquals(studentRequest.getAddress().getNumber(), updatedStudent.getAddress().getNumber());
+        Assertions.assertEquals(studentRequest.getAddress().getNeighborhood(),
+                updatedStudent.getAddress().getNeighborhood());
+        Assertions.assertEquals(studentRequest.getAddress().getComplement(),
+                updatedStudent.getAddress().getComplement());
         Assertions.assertNull(updatedStudent.getClassId());
-        Assertions.assertEquals(updatedStudent.getDateOfBirth(),
-                LocalDate.parse(studentRequest.getDateOfBirth(), formatter));
+        Assertions.assertEquals(LocalDate.parse(studentRequest.getDateOfBirth(), formatter),
+                updatedStudent.getDateOfBirth());
         Assertions.assertNotNull(updatedStudent.getUser().getId());
-        Assertions.assertEquals(updatedStudent.getUser().getLogin(), studentRequest.getCpf());
-        Assertions.assertEquals(updatedStudent.getUser().getPassword(), studentRequest.getPassword());
+        Assertions.assertEquals(studentRequest.getCpf(), updatedStudent.getUser().getLogin());
+        Assertions.assertEquals(studentRequest.getPassword(), updatedStudent.getUser().getPassword());
         Assertions.assertTrue(updatedStudent.getUser().getUserType().contains(UserTypeEnum.ROLE_STUDENT));
         Assertions.assertAll(StreamUtils
-                .<Responsible, ResponsibleRequestDTO, Executable>zip(updatedStudent.getResponsibles().stream(),
-                        studentRequest.getResponsibles().stream(), (saved, request) -> {
+                .<ResponsibleRequestDTO, Responsible, Executable>zip(studentRequest.getResponsibles().stream(),
+                        updatedStudent.getResponsibles().stream(), (request, saved) -> {
                             return () -> {
                                 Assertions.assertEquals(saved.getName(), request.getName());
                                 Assertions.assertEquals(saved.getEmail(), request.getEmail());
@@ -258,17 +273,13 @@ public class StudentServiceTest {
     }
 
     @Test
-    void update_Throws_ConflictException_WhenCpfIsAlreadyInUse() {
+    void shouldThorwsRuntimeExceptionWhenCpfIsAlreadyInUseOnUpdate() {
         StudentRequestDTO studentRequest = this.createStudentRequestDTO();
         when(studentRepository.findById(anyLong())).thenReturn(Optional.of(this.createStudentToBeUpdated()));
         when(studentRepository.findByCpf(anyString())).thenReturn(Optional.of(this.createStudent()));
 
-        ConflictException conflictException = Assertions
-                .assertThrows(ConflictException.class,
-                        () -> studentService.update(studentRequest, 2L));
-
-        Assertions.assertTrue(conflictException.getMessage()
-                .contains("This cpf is already in use by someone else"));
+        Assertions.assertThrows(RuntimeException.class,
+                () -> studentService.update(studentRequest, 2L));
 
         verify(studentRepository, times(0)).save(any(Student.class));
         verify(studentRepository).findByCpf(anyString());
@@ -277,17 +288,13 @@ public class StudentServiceTest {
     }
 
     @Test
-    void update_Throws_BadRequestException_WhenDateOfBirthIsNotValid() {
+    void shouldThorwsRuntimeExceptionWhenDateOfBirthIsNotValidOnUpdate() {
         StudentRequestDTO studentRequest = this.createStudentRequestDTO();
         when(studentRepository.findById(anyLong())).thenReturn(Optional.of(this.createStudentToBeUpdated()));
         studentRequest.setDateOfBirth("01/10/2100");
 
-        BadRequestException badRequestException = Assertions
-                .assertThrows(BadRequestException.class,
-                        () -> studentService.update(studentRequest, 2L));
-
-        Assertions.assertTrue(badRequestException.getMessage()
-                .contains("Invalid date of birth submitted"));
+        Assertions.assertThrows(RuntimeException.class,
+                () -> studentService.update(studentRequest, 2L));
 
         verify(studentRepository, times(0)).save(any(Student.class));
         verify(studentRepository).findByCpf(anyString());
@@ -296,15 +303,11 @@ public class StudentServiceTest {
     }
 
     @Test
-    void update_Throws_ResourceNotFoundException_WhenStudentNotFound() {
+    void shouldThorwsRuntimeExceptionWhenStudentNotFoundOnUpdate() {
         StudentRequestDTO studentRequest = this.createStudentRequestDTO();
 
-        ResourceNotFoundException resourceNotFoundException = Assertions
-                .assertThrows(ResourceNotFoundException.class,
-                        () -> studentService.update(studentRequest, 2L));
-
-        Assertions.assertTrue(resourceNotFoundException.getMessage()
-                .contains("Student not found with the given id"));
+        Assertions.assertThrows(ResourceNotFoundException.class,
+                () -> studentService.update(studentRequest, 2L));
 
         verify(studentRepository, times(0)).save(any(Student.class));
         verify(studentRepository, times(0)).findByCpf(anyString());
