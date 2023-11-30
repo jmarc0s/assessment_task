@@ -1,6 +1,5 @@
 package br.com.jmarcos.assessment_task.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -24,14 +23,18 @@ import jakarta.validation.Valid;
 @RequestMapping("/auth")
 public class AuthController {
 
-    @Autowired
     private AuthenticationManager authenticationManager;
-    @Autowired
+
     private TokenService tokenService;
 
+    public AuthController(AuthenticationManager authenticationManager, TokenService tokenService) {
+        this.tokenService = tokenService;
+        this.authenticationManager = authenticationManager;
+    }
+
     @Operation(summary = "Login in the system", description = "login to access features", responses = {
-            @ApiResponse(responseCode = "200", ref = "ok"),
-            @ApiResponse(responseCode = "400", ref = "badRequest"),
+            @ApiResponse(responseCode = "200", description = "Successful Request"),
+            @ApiResponse(responseCode = "400", description = "Bad Request"),
             @ApiResponse(responseCode = "401", description = "invalid user")
     })
     @PostMapping

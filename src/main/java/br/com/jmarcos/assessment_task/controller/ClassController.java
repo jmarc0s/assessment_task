@@ -15,7 +15,6 @@ import java.net.URI;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -93,7 +92,7 @@ public class ClassController {
         public ResponseEntity<Object> delete(@PathVariable Long id) {
                 this.classService.delete(id);
 
-                return ResponseEntity.status(HttpStatus.NO_CONTENT).body("Class was successfully deleted");
+                return ResponseEntity.noContent().build();
 
         }
 

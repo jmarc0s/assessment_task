@@ -91,7 +91,7 @@ public class StudentController {
         public ResponseEntity<Object> delete(@PathVariable Long id) {
                 this.studentService.delete(id);
 
-                return ResponseEntity.status(HttpStatus.NO_CONTENT).body("student was successfully deleted");
+                return ResponseEntity.noContent().build();
 
         }
 

@@ -33,8 +33,6 @@ import org.springframework.data.domain.PageRequest;
 import br.com.jmarcos.assessment_task.repository.ClassRepository;
 import br.com.jmarcos.assessment_task.service.ClassService;
 import br.com.jmarcos.assessment_task.service.StudentService;
-import br.com.jmarcos.assessment_task.service.exceptions.BadRequestException;
-import br.com.jmarcos.assessment_task.service.exceptions.ConflictException;
 import br.com.jmarcos.assessment_task.service.exceptions.ResourceNotFoundException;
 
 @ExtendWith(MockitoExtension.class)
