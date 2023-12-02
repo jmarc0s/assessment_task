@@ -48,7 +48,7 @@ public class ClassServiceTest {
         private StudentService studentService;
 
         @Test
-        void shouldReturnAListOfClassesWhenSuccessful() {
+        void shouldReturnAPageOfClassesWhenSuccessful() {
                 PageRequest pageable = PageRequest.of(0, 5);
                 List<Class> classList = List.of(this.createClass());
                 PageImpl<Class> classPage = new PageImpl<>(classList);
@@ -70,12 +70,11 @@ public class ClassServiceTest {
                 Assertions.assertTrue(
                                 returnedCLassList.get(0).getStudents().containsAll(classList.get(0).getStudents()));
 
-                verify(classRepository).findAll(pageable);
-
+                verify(classRepository, times(1)).findAll(pageable);
         }
 
         @Test
-        void shouldReturnAnEmptyListOfClassesWhenThereAreNoClasses() {
+        void shouldReturnAnEmptyPageOfClassesWhenThereAreNoClasses() {
                 PageRequest pageable = PageRequest.of(0, 5);
                 List<Class> classList = List.of();
                 PageImpl<Class> classPage = new PageImpl<>(classList);
@@ -87,31 +86,29 @@ public class ClassServiceTest {
                 Assertions.assertTrue(returnedStudentList.isEmpty());
                 assertIterableEquals(classList, returnedStudentList);
 
-                verify(classRepository).findAll(pageable);
-
+                verify(classRepository, times(1)).findAll(pageable);
         }
 
         @Test
         void shouldReturnAClassByIdWhenSuccessful() {
-                Class newClass = this.createClass();
+                Class expectedClass = this.createClass();
 
                 when(classRepository.findById(anyLong()))
-                                .thenReturn(Optional.of(newClass));
+                                .thenReturn(Optional.of(expectedClass));
 
                 Class returnedClass = this.classService
                                 .findById(1L);
 
-                Assertions.assertNotNull(newClass.getTitle(), returnedClass.getTitle());
-                Assertions.assertEquals(newClass.getTitle(), returnedClass.getTitle());
-                Assertions.assertEquals(newClass.getTeacherHolder(), returnedClass.getTeacherHolder());
-                Assertions.assertEquals(newClass.getMaxStudents(), returnedClass.getMaxStudents());
-                Assertions.assertEquals(newClass.getClassShift(), returnedClass.getClassShift());
-                Assertions.assertEquals(newClass.getClassStatus(), returnedClass.getClassStatus());
-                Assertions.assertEquals(newClass.getSchoolSegment(), returnedClass.getSchoolSegment());
-                Assertions.assertTrue(newClass.getStudents().containsAll(returnedClass.getStudents()));
+                Assertions.assertNotNull(expectedClass.getTitle(), returnedClass.getTitle());
+                Assertions.assertEquals(expectedClass.getTitle(), returnedClass.getTitle());
+                Assertions.assertEquals(expectedClass.getTeacherHolder(), returnedClass.getTeacherHolder());
+                Assertions.assertEquals(expectedClass.getMaxStudents(), returnedClass.getMaxStudents());
+                Assertions.assertEquals(expectedClass.getClassShift(), returnedClass.getClassShift());
+                Assertions.assertEquals(expectedClass.getClassStatus(), returnedClass.getClassStatus());
+                Assertions.assertEquals(expectedClass.getSchoolSegment(), returnedClass.getSchoolSegment());
+                Assertions.assertTrue(expectedClass.getStudents().containsAll(returnedClass.getStudents()));
 
-                verify(classRepository).findById(anyLong());
-
+                verify(classRepository, times(1)).findById(anyLong());
         }
 
         @Test
@@ -120,8 +117,7 @@ public class ClassServiceTest {
                 Assertions.assertThrows(RuntimeException.class,
                                 () -> classService.findById(anyLong()));
 
-                verify(classRepository).findById(anyLong());
-
+                verify(classRepository, times(1)).findById(anyLong());
         }
 
         @Test
@@ -147,11 +143,10 @@ public class ClassServiceTest {
                                                 .stream()
                                                 .findFirst().get().getId());
 
-                verify(classRepository).save(any(Class.class));
-                verify(classRepository).findAllByTeacherHolder(anyString());
-                verify(studentService).findById(anyLong());
+                verify(classRepository, times(1)).save(any(Class.class));
+                verify(classRepository, times(1)).findAllByTeacherHolder(anyString());
+                verify(studentService, times(1)).findById(anyLong());
                 verify(studentService, times(1)).saveSettingClass(any(Student.class));
-
         }
 
         @Test
@@ -166,7 +161,6 @@ public class ClassServiceTest {
                 verify(classRepository, times(0)).findAllByTeacherHolder(anyString());
                 verify(studentService, times(0)).findById(anyLong());
                 verify(studentService, times(0)).saveSettingClass(any(Student.class));
-
         }
 
         @Test
@@ -181,7 +175,6 @@ public class ClassServiceTest {
                 verify(classRepository, times(1)).findAllByTeacherHolder(anyString());
                 verify(studentService, times(0)).findById(anyLong());
                 verify(studentService, times(0)).saveSettingClass(any(Student.class));
-
         }
 
         @Test
@@ -197,7 +190,6 @@ public class ClassServiceTest {
                 verify(classRepository, times(1)).findAllByTeacherHolder(anyString());
                 verify(studentService, times(1)).findById(anyLong());
                 verify(studentService, times(0)).saveSettingClass(any(Student.class));
-
         }
 
         @Test
@@ -214,7 +206,6 @@ public class ClassServiceTest {
                 verify(classRepository, times(1)).findAllByTeacherHolder(anyString());
                 verify(studentService, times(1)).findById(anyLong());
                 verify(studentService, times(0)).saveSettingClass(any(Student.class));
-
         }
 
         @Test
@@ -224,9 +215,9 @@ public class ClassServiceTest {
 
                 this.classService.delete(1L);
 
-                verify(classRepository).findById(anyLong());
-                verify(classRepository).delete(any(Class.class));
-                verify(studentService).updateStudent(any(Student.class));
+                verify(classRepository, times(1)).findById(anyLong());
+                verify(classRepository, times(1)).delete(any(Class.class));
+                verify(studentService, times(1)).updateStudent(any(Student.class));
         }
 
     @Test
@@ -239,7 +230,6 @@ public class ClassServiceTest {
         verify(classRepository, times(1)).findById(anyLong());
         verify(classRepository, times(0)).delete(any(Class.class));
         verify(studentService, times(0)).updateStudent(any(Student.class));
-        
     }
 
         @Test
@@ -267,12 +257,11 @@ public class ClassServiceTest {
                                                 .stream()
                                                 .findFirst().get().getId());
 
-                verify(classRepository).save(any(Class.class));
+                verify(classRepository, times(1)).save(any(Class.class));
                 verify(classRepository, times(1)).findById(anyLong());
-                verify(classRepository).findAllByTeacherHolder(anyString());
+                verify(classRepository, times(1)).findAllByTeacherHolder(anyString());
                 verify(studentService).findById(anyLong());
                 verify(studentService, times(2)).saveSettingClass(any(Student.class));
-
         }
 
         @Test
@@ -290,40 +279,37 @@ public class ClassServiceTest {
                 verify(classRepository, times(0)).findAllByTeacherHolder(anyString());
                 verify(studentService, times(0)).findById(anyLong());
                 verify(studentService, times(0)).saveSettingClass(any(Student.class));
-
         }
 
         @Test
         void shouldThrowsRuntimeExceptionWhenTeacherIsUnavailableOnUpdate() {
-                ClassRequestDTO newClassRequest = this.createClassRequestDTO();
+                ClassRequestDTO classUpdateRequest = this.createClassRequestDTO();
                 Class classToBeUpdated = this.createClassToBeUpdated();
                 when(classRepository.findById(anyLong())).thenReturn(Optional.of(classToBeUpdated));
                 when(classRepository.findAllByTeacherHolder(anyString())).thenReturn(Arrays.asList(this.createClass()));
 
                 Assertions.assertThrows(RuntimeException.class,
-                                () -> classService.update(newClassRequest, 2L));
+                                () -> classService.update(classUpdateRequest, 2L));
 
                 verify(classRepository, times(0)).save(any(Class.class));
                 verify(classRepository, times(1)).findById(anyLong());
                 verify(classRepository, times(1)).findAllByTeacherHolder(anyString());
                 verify(studentService, times(0)).findById(anyLong());
                 verify(studentService, times(0)).saveSettingClass(any(Student.class));
-
         }
 
         @Test
         void shouldThrowsRuntimeExceptionWhenClassNotFoundOnUpdate() {
-                ClassRequestDTO newClassRequest = this.createClassRequestDTO();
+                ClassRequestDTO classUpdateRequest = this.createClassRequestDTO();
 
                 Assertions.assertThrows(RuntimeException.class,
-                                () -> classService.update(newClassRequest, 2L));
+                                () -> classService.update(classUpdateRequest, 2L));
 
                 verify(classRepository, times(0)).save(any(Class.class));
                 verify(classRepository, times(0)).findAllByTeacherHolder(anyString());
                 verify(classRepository, times(1)).findById(anyLong());
                 verify(studentService, times(0)).findById(anyLong());
                 verify(studentService, times(0)).saveSettingClass(any(Student.class));
-
         }
 
         @Test
@@ -343,7 +329,6 @@ public class ClassServiceTest {
                 verify(classRepository, times(1)).findAllByTeacherHolder(anyString());
                 verify(studentService, times(1)).findById(anyLong());
                 verify(studentService, times(0)).saveSettingClass(any(Student.class));
-
         }
 
         ClassRequestDTO createClassRequestDTO() {

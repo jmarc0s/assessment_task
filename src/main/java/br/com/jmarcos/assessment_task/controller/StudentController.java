@@ -1,10 +1,11 @@
 package br.com.jmarcos.assessment_task.controller;
 
 import java.net.URI;
+import java.util.List;
 
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -24,6 +26,8 @@ import br.com.jmarcos.assessment_task.model.Student;
 import br.com.jmarcos.assessment_task.model.User;
 import br.com.jmarcos.assessment_task.service.StudentService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 
@@ -43,14 +47,15 @@ public class StudentController {
         })
 
         @GetMapping
-        public Page<StudentResponseDTO> search(Pageable pageable) {
+        public List<StudentResponseDTO> search(@RequestParam(required = false) Pageable pageable) {
                 return this.studentService
                                 .search(pageable)
-                                .map(StudentResponseDTO::new);
+                                .map(StudentResponseDTO::new)
+                                .toList();
         }
 
         @Operation(summary = "return a student by id", description = "return student by the specified id", responses = {
-                        @ApiResponse(responseCode = "200", description = "student returned successfully"),
+                        @ApiResponse(responseCode = "200", description = "student returned successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = StudentResponseDTO.class))),
                         @ApiResponse(responseCode = "400", description = "the submitted id is not a number"),
                         @ApiResponse(responseCode = "403", description = "access denied"),
                         @ApiResponse(responseCode = "404", description = "student not found with the specified id")
@@ -88,7 +93,7 @@ public class StudentController {
         })
 
         @DeleteMapping("/{id}")
-        public ResponseEntity<Object> delete(@PathVariable Long id) {
+        public ResponseEntity<Void> delete(@PathVariable Long id) {
                 this.studentService.delete(id);
 
                 return ResponseEntity.noContent().build();

@@ -12,8 +12,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 
 import java.net.URI;
+import java.util.List;
 
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -42,10 +42,11 @@ public class ClassController {
         })
 
         @GetMapping
-        public Page<ClassResponseDTO> search(Pageable pageable) {
+        public List<ClassResponseDTO> search(Pageable pageable) {
                 return this.classService
                                 .search(pageable)
-                                .map(ClassResponseDTO::new);
+                                .map(ClassResponseDTO::new)
+                                .toList();
         }
 
         @Operation(summary = "returns a class by id", description = "returns class by the specified id", responses = {
@@ -89,7 +90,7 @@ public class ClassController {
         })
 
         @DeleteMapping("/{id}")
-        public ResponseEntity<Object> delete(@PathVariable Long id) {
+        public ResponseEntity<Void> delete(@PathVariable Long id) {
                 this.classService.delete(id);
 
                 return ResponseEntity.noContent().build();
