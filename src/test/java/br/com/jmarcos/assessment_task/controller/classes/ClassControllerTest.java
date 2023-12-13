@@ -1,27 +1,28 @@
 package br.com.jmarcos.assessment_task.controller.classes;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.hamcrest.CoreMatchers.is;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.net.URI;
 import java.util.Set;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.util.UriComponentsBuilder;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import br.com.jmarcos.assessment_task.controller.ClassController;
 import br.com.jmarcos.assessment_task.controller.DTO.classes.ClassRequestDTO;
+import br.com.jmarcos.assessment_task.controller.DTO.classes.ClassResponseDTO;
 import br.com.jmarcos.assessment_task.model.Student;
 import br.com.jmarcos.assessment_task.model.Class;
 import br.com.jmarcos.assessment_task.model.enums.ClassShiftEnum;
@@ -29,35 +30,84 @@ import br.com.jmarcos.assessment_task.model.enums.ClassStatusEnum;
 import br.com.jmarcos.assessment_task.model.enums.SchoolSegmentEnum;
 import br.com.jmarcos.assessment_task.service.ClassService;
 
-@WebMvcTest
+@ExtendWith(MockitoExtension.class)
 public class ClassControllerTest {
-    
-    @Autowired
-    private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper mapper;
+        @InjectMocks
+        private ClassController classController;
 
-    @MockBean
-    private ClassService classService;
+        @Mock
+        private ClassService classService;
 
 
-    @Test
-    void shouldReturnASavedClassWhenSuccessful() throws JsonProcessingException, Exception{
-        ClassRequestDTO classRequestDTO = createClassRequestDTO();
-        Class newClass = createClass();
-        when(classService.save(any(ClassRequestDTO.class))).thenReturn(newClass);
+        @Test
+        void shouldReturnASavedClassWhenSuccessful(){
+                ClassRequestDTO classRequestDTO = createClassRequestDTO();
+                Class newClass = createClass();
+                when(classService.save(any(ClassRequestDTO.class))).thenReturn(newClass);
+                UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString("http://localhost");
 
-        ResultActions response = mockMvc.perform(post("/class")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(mapper.writeValueAsString(classRequestDTO)));
 
-        response.andExpect(status().isCreated())
-            .andExpect(jsonPath("$.title", is(classRequestDTO.getTitle())));
-            
-    }
+                ResponseEntity<ClassResponseDTO> responseEntitySavedClass = classController.save(classRequestDTO, uriBuilder);
 
-    ClassRequestDTO createClassRequestDTO() {
+
+                Assertions.assertNotNull(responseEntitySavedClass);
+                assertEquals(HttpStatus.CREATED, responseEntitySavedClass.getStatusCode());
+                ClassResponseDTO savedClass = responseEntitySavedClass.getBody();
+
+                URI location = responseEntitySavedClass.getHeaders().getLocation();
+                Assertions.assertNotNull(location);
+                Assertions.assertEquals("/classes/" + savedClass.getId(), location.getPath());
+
+                Assertions.assertNotNull(savedClass.getId());
+                Assertions.assertEquals(classRequestDTO.getTitle(), savedClass.getTitle());
+                Assertions.assertEquals(classRequestDTO.getClassShift(), savedClass.getClassShift());
+                Assertions.assertEquals(classRequestDTO.getClassStatus(), savedClass.getClassStatus());
+                Assertions.assertEquals(classRequestDTO.getMaxStudents(), savedClass.getMaxStudents());
+                Assertions.assertEquals(classRequestDTO.getSchoolSegment(), savedClass.getSchoolSegment());
+                Assertions.assertEquals(classRequestDTO.getTeacherHolder(), savedClass.getTeacherHolder());
+
+                verify(classService, times(1)).save(any(ClassRequestDTO.class));              
+        }
+
+        @Test
+        void shouldReturnAClassByIdWhenSuccessful(){
+                Class expectedClass = createClass();
+                when(classService.findById(anyLong())).thenReturn(expectedClass);
+
+
+                ResponseEntity<ClassResponseDTO> responseEntityReturnedClass = classController.searchById(1L);
+                
+
+                Assertions.assertNotNull(responseEntityReturnedClass);
+                assertEquals(HttpStatus.OK, responseEntityReturnedClass.getStatusCode());
+                ClassResponseDTO returnedClass = responseEntityReturnedClass.getBody();
+
+                Assertions.assertEquals(expectedClass.getId(), returnedClass.getId());
+                Assertions.assertEquals(expectedClass.getTitle(), returnedClass.getTitle());
+                Assertions.assertEquals(expectedClass.getClassShift(), returnedClass.getClassShift());
+                Assertions.assertEquals(expectedClass.getClassStatus(), returnedClass.getClassStatus());
+                Assertions.assertEquals(expectedClass.getMaxStudents(), returnedClass.getMaxStudents());
+                Assertions.assertEquals(expectedClass.getSchoolSegment(), returnedClass.getSchoolSegment());
+                Assertions.assertEquals(expectedClass.getTeacherHolder(), returnedClass.getTeacherHolder());
+                
+                verify(classService, times(1)).findById(anyLong());
+        }
+
+        @Test
+        void shouldNotHaveAnyReturnWheSuccessful(){
+
+                ResponseEntity<Void> responseEntityReturnedClass = classController.delete(1L);
+                
+
+                Assertions.assertNotNull(responseEntityReturnedClass);
+                Assertions.assertEquals(HttpStatus.NO_CONTENT, responseEntityReturnedClass.getStatusCode());
+                Assertions.assertNull(responseEntityReturnedClass.getBody());
+                
+                verify(classService, times(1)).delete(anyLong());  
+        }
+
+        ClassRequestDTO createClassRequestDTO() {
                 ClassRequestDTO newClass = new ClassRequestDTO();
 
                 newClass.setTitle("Turma A");
