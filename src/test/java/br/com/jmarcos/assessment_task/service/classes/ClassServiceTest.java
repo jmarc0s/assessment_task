@@ -113,6 +113,7 @@ public class ClassServiceTest {
 
         @Test
         void shouldThrowsRuntimeExceptionWhenClassNotFound() {
+                when(classRepository.findById(anyLong())).thenReturn(Optional.empty());
 
                 Assertions.assertThrows(RuntimeException.class,
                                 () -> classService.findById(anyLong()));
