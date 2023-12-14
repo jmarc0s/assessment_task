@@ -10,23 +10,20 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.function.Executable;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.util.StreamUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -34,10 +31,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 import br.com.jmarcos.assessment_task.controller.ClassController;
 import br.com.jmarcos.assessment_task.controller.DTO.classes.ClassRequestDTO;
 import br.com.jmarcos.assessment_task.controller.DTO.classes.ClassResponseDTO;
-import br.com.jmarcos.assessment_task.controller.DTO.student.responsible.ResponsibleRequestDTO;
 import br.com.jmarcos.assessment_task.model.Student;
 import br.com.jmarcos.assessment_task.model.Class;
-import br.com.jmarcos.assessment_task.model.Responsible;
 import br.com.jmarcos.assessment_task.model.enums.ClassShiftEnum;
 import br.com.jmarcos.assessment_task.model.enums.ClassStatusEnum;
 import br.com.jmarcos.assessment_task.model.enums.SchoolSegmentEnum;
@@ -238,6 +233,59 @@ public class ClassControllerTest {
                 Assertions.assertEquals(classUpdateRequest.getClassStatus(), updatedClassResponse.getClassStatus());
                 Assertions.assertEquals(classUpdateRequest.getSchoolSegment(), updatedClassResponse.getSchoolSegment());
                 Assertions.assertTrue(classUpdateRequest.getStudentsId().containsAll(updatedClassResponse.getStudentsId()));
+
+                verify(classService, times(1)).update(any(ClassRequestDTO.class), anyLong());
+        }
+
+        @Test
+        void shouldThrowsRuntimeExceptionWhenStatusIsInvalidOnUpdate() {
+                ClassRequestDTO classUpdateRequest = this.createClassRequestDTO();
+                classUpdateRequest.setTeacherHolder(null);
+                when(classService.update(any(ClassRequestDTO.class), anyLong()))
+                        .thenThrow(new BadRequestException("The class cannot be active if it does not have a teacher"));
+                
+
+                Assertions.assertThrows(RuntimeException.class,
+                                () -> classService.update(classUpdateRequest, 2L));
+
+                verify(classService, times(1)).update(any(ClassRequestDTO.class), anyLong());
+        }
+
+        @Test
+        void shouldThrowsRuntimeExceptionWhenTeacherIsUnavailableOnUpdate() {
+                ClassRequestDTO classUpdateRequest = this.createClassRequestDTO();
+                when(classService.update(any(ClassRequestDTO.class), anyLong()))
+                        .thenThrow(new ConflictException("This teacher cannot be assigned to this class this shift"));
+
+                Assertions.assertThrows(RuntimeException.class,
+                                () -> classService.update(classUpdateRequest, 2L));
+
+                verify(classService, times(1)).update(any(ClassRequestDTO.class), anyLong());
+        }
+
+        @Test
+        void shouldThrowsRuntimeExceptionWhenClassNotFoundOnUpdate() {
+                ClassRequestDTO classUpdateRequest = this.createClassRequestDTO();
+                when(classService.update(any(ClassRequestDTO.class), anyLong()))
+                        .thenThrow(new ResourceNotFoundException("Class not found with the given id"));
+
+                Assertions.assertThrows(RuntimeException.class,
+                                () -> classService.update(classUpdateRequest, 2L));
+
+                verify(classService, times(1)).update(any(ClassRequestDTO.class), anyLong());
+        }
+
+        @Test
+        void shouldThrowsRuntimeExceptionWhenStudentIsAlreadyAssignedToAnotherClassOnUpdate() {
+                ClassRequestDTO classUpdateRequest = this.createClassRequestDTO();
+                Student student = this.createStudent();
+                student.setClassId(this.createClass());
+                when(classService.update(any(ClassRequestDTO.class), anyLong()))
+                        .thenThrow(new ConflictException(
+                                "This student is already allocated to another class"));
+
+                Assertions.assertThrows(RuntimeException.class,
+                                () -> classService.update(classUpdateRequest, 2L));
 
                 verify(classService, times(1)).update(any(ClassRequestDTO.class), anyLong());
         }
