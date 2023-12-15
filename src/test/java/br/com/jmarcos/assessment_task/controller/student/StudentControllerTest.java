@@ -1,10 +1,8 @@
 package br.com.jmarcos.assessment_task.controller.student;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -12,7 +10,6 @@ import static org.mockito.Mockito.when;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import org.junit.jupiter.api.Assertions;
@@ -22,7 +19,6 @@ import org.junit.jupiter.api.function.Executable;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.util.StreamUtils;
@@ -31,6 +27,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import br.com.jmarcos.assessment_task.controller.StudentController;
+import br.com.jmarcos.assessment_task.controller.DTO.classes.ClassResponseDTO;
 import br.com.jmarcos.assessment_task.controller.DTO.student.StudentRequestDTO;
 import br.com.jmarcos.assessment_task.controller.DTO.student.StudentResponseDTO;
 import br.com.jmarcos.assessment_task.controller.DTO.student.address.AddressRequestDTO;
@@ -40,6 +37,7 @@ import br.com.jmarcos.assessment_task.model.Address;
 import br.com.jmarcos.assessment_task.model.Responsible;
 import br.com.jmarcos.assessment_task.model.Student;
 import br.com.jmarcos.assessment_task.model.User;
+import br.com.jmarcos.assessment_task.model.Class;
 import br.com.jmarcos.assessment_task.model.enums.UserTypeEnum;
 import br.com.jmarcos.assessment_task.service.StudentService;
 import br.com.jmarcos.assessment_task.service.exceptions.BadRequestException;
@@ -298,6 +296,30 @@ public class StudentControllerTest {
 
         verify(studentService, times(1)).update(any(StudentRequestDTO.class), anyLong());
     }
+
+    @Test
+    void shouldReturnToTheClassAssociatedWithThisStudent(){
+        User user = new User();
+        Class expectedClass = this.createClass();
+        when(studentService.findMyClass(any(User.class))).thenReturn(expectedClass);
+
+        ResponseEntity<ClassResponseDTO> responseEntityReturnedClass = this.studentController.getClass(user);
+
+        Assertions.assertNotNull(responseEntityReturnedClass);
+        assertEquals(HttpStatus.OK, responseEntityReturnedClass.getStatusCode());
+        ClassResponseDTO returnedClass = responseEntityReturnedClass.getBody();
+
+        Assertions.assertNotNull(returnedClass);
+        Assertions.assertEquals(expectedClass.getId(), returnedClass.getId());
+        Assertions.assertEquals(expectedClass.getTitle(), returnedClass.getTitle());
+        Assertions.assertNull(returnedClass.getTeacherHolder());
+        Assertions.assertNull(returnedClass.getClassShift());
+        Assertions.assertNull(returnedClass.getClassStatus());
+        Assertions.assertEquals(0, returnedClass.getMaxStudents());
+        Assertions.assertNull(returnedClass.getSchoolSegment());
+        Assertions.assertTrue(returnedClass.getStudentsId().isEmpty());
+
+    }
     
 
     StudentRequestDTO createStudentRequestDTO() {
@@ -360,5 +382,15 @@ public class StudentControllerTest {
         student.setUser(new User(2L, "274.996.840-24", "1234student", Set.of(UserTypeEnum.ROLE_STUDENT)));
 
         return student;
+    }
+
+    Class createClass(){
+        Class newClass = new Class();
+
+        newClass.setId(1L);
+        newClass.setTitle("Turma A");
+        newClass.setStudents(Set.of());
+
+        return newClass;
     }
 }
