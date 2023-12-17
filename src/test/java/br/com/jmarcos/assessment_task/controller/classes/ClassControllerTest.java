@@ -4,15 +4,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static br.com.jmarcos.assessment_task.model.enums.ClassShiftEnum.MORNINGSHIFT;
+import static br.com.jmarcos.assessment_task.model.enums.ClassShiftEnum.AFTERNOONSHIFT;
+import static br.com.jmarcos.assessment_task.model.enums.ClassStatusEnum.ACTIVE;
+import static br.com.jmarcos.assessment_task.model.enums.ClassStatusEnum.PLANNING;
+import static br.com.jmarcos.assessment_task.model.enums.SchoolSegmentEnum.SECONDCHILDISH;
+import static br.com.jmarcos.assessment_task.model.enums.SchoolSegmentEnum.FIFTHCHILDISH;
 
 import java.net.URI;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -33,9 +36,6 @@ import br.com.jmarcos.assessment_task.controller.DTO.classes.ClassRequestDTO;
 import br.com.jmarcos.assessment_task.controller.DTO.classes.ClassResponseDTO;
 import br.com.jmarcos.assessment_task.model.Student;
 import br.com.jmarcos.assessment_task.model.Class;
-import br.com.jmarcos.assessment_task.model.enums.ClassShiftEnum;
-import br.com.jmarcos.assessment_task.model.enums.ClassStatusEnum;
-import br.com.jmarcos.assessment_task.model.enums.SchoolSegmentEnum;
 import br.com.jmarcos.assessment_task.service.ClassService;
 import br.com.jmarcos.assessment_task.service.exceptions.BadRequestException;
 import br.com.jmarcos.assessment_task.service.exceptions.ConflictException;
@@ -49,7 +49,6 @@ public class ClassControllerTest {
 
         @Mock
         private ClassService classService;
-
 
         @Test
         void shouldReturnAListOfClassesWhenSuccessful() {
@@ -71,7 +70,8 @@ public class ClassControllerTest {
                 Assertions.assertEquals(classList.get(0).getClassStatus(), returnedClassList.get(0).getClassStatus());
                 Assertions.assertEquals(classList.get(0).getSchoolSegment(),
                                 returnedClassList.get(0).getSchoolSegment());
-                Assertions.assertTrue(extractStudentsIdFromStudentSet(classList.get(0)).containsAll(returnedClassList.get(0).getStudentsId()));
+                Assertions.assertTrue(extractStudentsIdFromStudentSet(classList.get(0))
+                                .containsAll(returnedClassList.get(0).getStudentsId()));
 
                 verify(classService, times(1)).search(pageable);
         }
@@ -90,17 +90,16 @@ public class ClassControllerTest {
 
                 verify(classService, times(1)).search(pageable);
         }
-   
+
         @Test
-        void shouldReturnASavedClassWhenSuccessful(){
+        void shouldReturnASavedClassWhenSuccessful() {
                 ClassRequestDTO classRequestDTO = createClassRequestDTO();
                 Class newClass = createClass();
                 when(classService.save(any(ClassRequestDTO.class))).thenReturn(newClass);
                 UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString("http://localhost");
 
-
-                ResponseEntity<ClassResponseDTO> responseEntitySavedClass = classController.save(classRequestDTO, uriBuilder);
-
+                ResponseEntity<ClassResponseDTO> responseEntitySavedClass = classController.save(classRequestDTO,
+                                uriBuilder);
 
                 Assertions.assertNotNull(responseEntitySavedClass);
                 assertEquals(HttpStatus.CREATED, responseEntitySavedClass.getStatusCode());
@@ -119,7 +118,7 @@ public class ClassControllerTest {
                 Assertions.assertEquals(classRequestDTO.getTeacherHolder(), savedClass.getTeacherHolder());
                 Assertions.assertTrue(classRequestDTO.getStudentsId().containsAll(savedClass.getStudentsId()));
 
-                verify(classService, times(1)).save(any(ClassRequestDTO.class));              
+                verify(classService, times(1)).save(any(ClassRequestDTO.class));
         }
 
         @Test
@@ -127,7 +126,8 @@ public class ClassControllerTest {
                 ClassRequestDTO newClassRequest = this.createClassRequestDTO();
                 newClassRequest.setTeacherHolder(null);
                 UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString("http://localhost");
-                when(classService.save(newClassRequest)).thenThrow(new BadRequestException("The class cannot be active if it does not have a teacher"));
+                when(classService.save(newClassRequest)).thenThrow(
+                                new BadRequestException("The class cannot be active if it does not have a teacher"));
 
                 Assertions.assertThrows(RuntimeException.class,
                                 () -> classController.save(newClassRequest, uriBuilder));
@@ -163,16 +163,13 @@ public class ClassControllerTest {
                 verify(classService, times(1)).save(any(ClassRequestDTO.class));
         }
 
-
         @Test
-        void shouldReturnAClassByIdWhenSuccessful(){
+        void shouldReturnAClassByIdWhenSuccessful() {
                 Class expectedClass = createClass();
                 Set<Long> expectedStrudentsId = extractStudentsIdFromStudentSet(expectedClass);
                 when(classService.findById(anyLong())).thenReturn(expectedClass);
 
-
                 ResponseEntity<ClassResponseDTO> responseEntityReturnedClass = classController.searchById(1L);
-                
 
                 Assertions.assertNotNull(responseEntityReturnedClass);
                 assertEquals(HttpStatus.OK, responseEntityReturnedClass.getStatusCode());
@@ -186,13 +183,14 @@ public class ClassControllerTest {
                 Assertions.assertEquals(expectedClass.getSchoolSegment(), returnedClass.getSchoolSegment());
                 Assertions.assertEquals(expectedClass.getTeacherHolder(), returnedClass.getTeacherHolder());
                 Assertions.assertTrue(expectedStrudentsId.containsAll(returnedClass.getStudentsId()));
-                
+
                 verify(classService, times(1)).findById(anyLong());
         }
 
         @Test
         void shouldThrowsRuntimeExceptionWhenClassNotFound() {
-                when(classService.findById(anyLong())).thenThrow(new ResourceNotFoundException("Class not found with the given id"));
+                when(classService.findById(anyLong()))
+                                .thenThrow(new ResourceNotFoundException("Class not found with the given id"));
 
                 Assertions.assertThrows(RuntimeException.class,
                                 () -> classController.searchById(anyLong()));
@@ -201,16 +199,15 @@ public class ClassControllerTest {
         }
 
         @Test
-        void shouldNotHaveAnyReturnWheSuccessful(){
+        void shouldNotHaveAnyReturnWheSuccessful() {
 
                 ResponseEntity<Void> responseEntityReturnedClass = classController.delete(1L);
-                
 
                 Assertions.assertNotNull(responseEntityReturnedClass);
                 Assertions.assertEquals(HttpStatus.NO_CONTENT, responseEntityReturnedClass.getStatusCode());
                 Assertions.assertNull(responseEntityReturnedClass.getBody());
-                
-                verify(classService, times(1)).delete(anyLong());  
+
+                verify(classService, times(1)).delete(anyLong());
         }
 
         @Test
@@ -219,7 +216,8 @@ public class ClassControllerTest {
                 Class classToBeUpdated = this.createClass();
                 when(classService.update(any(ClassRequestDTO.class), anyLong())).thenReturn(classToBeUpdated);
 
-                ResponseEntity<ClassResponseDTO> responseEntityUpdatedClass = this.classController.update(classUpdateRequest, 2L);
+                ResponseEntity<ClassResponseDTO> responseEntityUpdatedClass = this.classController
+                                .update(classUpdateRequest, 2L);
 
                 Assertions.assertNotNull(responseEntityUpdatedClass);
                 assertEquals(HttpStatus.OK, responseEntityUpdatedClass.getStatusCode());
@@ -232,7 +230,8 @@ public class ClassControllerTest {
                 Assertions.assertEquals(classUpdateRequest.getClassShift(), updatedClassResponse.getClassShift());
                 Assertions.assertEquals(classUpdateRequest.getClassStatus(), updatedClassResponse.getClassStatus());
                 Assertions.assertEquals(classUpdateRequest.getSchoolSegment(), updatedClassResponse.getSchoolSegment());
-                Assertions.assertTrue(classUpdateRequest.getStudentsId().containsAll(updatedClassResponse.getStudentsId()));
+                Assertions.assertTrue(
+                                classUpdateRequest.getStudentsId().containsAll(updatedClassResponse.getStudentsId()));
 
                 verify(classService, times(1)).update(any(ClassRequestDTO.class), anyLong());
         }
@@ -242,8 +241,8 @@ public class ClassControllerTest {
                 ClassRequestDTO classUpdateRequest = this.createClassRequestDTO();
                 classUpdateRequest.setTeacherHolder(null);
                 when(classService.update(any(ClassRequestDTO.class), anyLong()))
-                        .thenThrow(new BadRequestException("The class cannot be active if it does not have a teacher"));
-                
+                                .thenThrow(new BadRequestException(
+                                                "The class cannot be active if it does not have a teacher"));
 
                 Assertions.assertThrows(RuntimeException.class,
                                 () -> classService.update(classUpdateRequest, 2L));
@@ -255,7 +254,8 @@ public class ClassControllerTest {
         void shouldThrowsRuntimeExceptionWhenTeacherIsUnavailableOnUpdate() {
                 ClassRequestDTO classUpdateRequest = this.createClassRequestDTO();
                 when(classService.update(any(ClassRequestDTO.class), anyLong()))
-                        .thenThrow(new ConflictException("This teacher cannot be assigned to this class this shift"));
+                                .thenThrow(new ConflictException(
+                                                "This teacher cannot be assigned to this class this shift"));
 
                 Assertions.assertThrows(RuntimeException.class,
                                 () -> classService.update(classUpdateRequest, 2L));
@@ -267,7 +267,7 @@ public class ClassControllerTest {
         void shouldThrowsRuntimeExceptionWhenClassNotFoundOnUpdate() {
                 ClassRequestDTO classUpdateRequest = this.createClassRequestDTO();
                 when(classService.update(any(ClassRequestDTO.class), anyLong()))
-                        .thenThrow(new ResourceNotFoundException("Class not found with the given id"));
+                                .thenThrow(new ResourceNotFoundException("Class not found with the given id"));
 
                 Assertions.assertThrows(RuntimeException.class,
                                 () -> classService.update(classUpdateRequest, 2L));
@@ -281,8 +281,8 @@ public class ClassControllerTest {
                 Student student = this.createStudent();
                 student.setClassId(this.createClass());
                 when(classService.update(any(ClassRequestDTO.class), anyLong()))
-                        .thenThrow(new ConflictException(
-                                "This student is already allocated to another class"));
+                                .thenThrow(new ConflictException(
+                                                "This student is already allocated to another class"));
 
                 Assertions.assertThrows(RuntimeException.class,
                                 () -> classService.update(classUpdateRequest, 2L));
@@ -294,10 +294,10 @@ public class ClassControllerTest {
                 ClassRequestDTO newClass = new ClassRequestDTO();
 
                 newClass.setTitle("Turma A");
-                newClass.setClassShift(ClassShiftEnum.MORNINGSHIFT);
-                newClass.setClassStatus(ClassStatusEnum.ACTIVE);
+                newClass.setClassShift(MORNINGSHIFT);
+                newClass.setClassStatus(ACTIVE);
                 newClass.setTeacherHolder("Professor A");
-                newClass.setSchoolSegment(SchoolSegmentEnum.FIFTHCHILDISH);
+                newClass.setSchoolSegment(FIFTHCHILDISH);
                 newClass.setMaxStudents(30);
                 newClass.setStudentsId(Set.of(1L));
 
@@ -309,10 +309,10 @@ public class ClassControllerTest {
 
                 newClass.setId(1L);
                 newClass.setTitle("Turma A");
-                newClass.setClassShift(ClassShiftEnum.MORNINGSHIFT);
-                newClass.setClassStatus(ClassStatusEnum.ACTIVE);
+                newClass.setClassShift(MORNINGSHIFT);
+                newClass.setClassStatus(ACTIVE);
                 newClass.setTeacherHolder("Professor A");
-                newClass.setSchoolSegment(SchoolSegmentEnum.FIFTHCHILDISH);
+                newClass.setSchoolSegment(FIFTHCHILDISH);
                 newClass.setMaxStudents(30);
                 newClass.setStudents(Set.of(this.createStudent()));
 
@@ -324,10 +324,10 @@ public class ClassControllerTest {
 
                 newClass.setId(2L);
                 newClass.setTitle("Turma para ser atualizada");
-                newClass.setClassShift(ClassShiftEnum.AFTERNOONSHIFT);
-                newClass.setClassStatus(ClassStatusEnum.PLANNING);
+                newClass.setClassShift(AFTERNOONSHIFT);
+                newClass.setClassStatus(PLANNING);
                 newClass.setTeacherHolder("professor a ser atualizado");
-                newClass.setSchoolSegment(SchoolSegmentEnum.SECONDCHILDISH);
+                newClass.setSchoolSegment(SECONDCHILDISH);
                 newClass.setMaxStudents(40);
                 newClass.setStudents(Set.of(this.createStudentToBeUpdate()));
 
@@ -346,10 +346,10 @@ public class ClassControllerTest {
                 return student;
         }
 
-        private Set<Long> extractStudentsIdFromStudentSet(Class submetedClass){
+        private Set<Long> extractStudentsIdFromStudentSet(Class submetedClass) {
                 return submetedClass.getStudents()
-                        .stream()
-                        .map(student -> student.getId())
-                        .collect(Collectors.toSet());
+                                .stream()
+                                .map(student -> student.getId())
+                                .collect(Collectors.toSet());
         }
 }

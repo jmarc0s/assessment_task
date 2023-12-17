@@ -24,7 +24,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.util.StreamUtils;
-
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.junit.jupiter.api.function.Executable;
 
 import br.com.jmarcos.assessment_task.controller.DTO.student.StudentRequestDTO;
@@ -103,8 +103,10 @@ public class StudentServiceTest {
         Assertions.assertNotNull(expectedStudent.getAddress().getId());
         Assertions.assertEquals(expectedStudent.getAddress().getStreet(), returnedStudent.getAddress().getStreet());
         Assertions.assertEquals(expectedStudent.getAddress().getNumber(), returnedStudent.getAddress().getNumber());
-        Assertions.assertEquals(expectedStudent.getAddress().getNeighborhood(), returnedStudent.getAddress().getNeighborhood());
-        Assertions.assertEquals(expectedStudent.getAddress().getComplement(), returnedStudent.getAddress().getComplement());
+        Assertions.assertEquals(expectedStudent.getAddress().getNeighborhood(),
+                returnedStudent.getAddress().getNeighborhood());
+        Assertions.assertEquals(expectedStudent.getAddress().getComplement(),
+                returnedStudent.getAddress().getComplement());
         Assertions.assertNull(returnedStudent.getClassId());
         Assertions.assertEquals(expectedStudent.getDateOfBirth(), returnedStudent.getDateOfBirth());
         Assertions.assertNotNull(returnedStudent.getUser().getId());
@@ -112,15 +114,16 @@ public class StudentServiceTest {
         Assertions.assertEquals(expectedStudent.getUser().getPassword(), returnedStudent.getUser().getPassword());
         Assertions.assertTrue(expectedStudent.getUser().getUserType().contains(UserTypeEnum.ROLE_STUDENT));
 
-        Assertions.assertAll(StreamUtils.<Responsible, Responsible, Executable>zip(expectedStudent.getResponsibles().stream(),
-                returnedStudent.getResponsibles().stream(), (expected, returned) -> {
-                    return () -> {
-                        Assertions.assertEquals(expected.getName(), returned.getName());
-                        Assertions.assertEquals(expected.getEmail(), returned.getEmail());
-                        Assertions.assertEquals(expected.getPhone(), returned.getPhone());
+        Assertions.assertAll(
+                StreamUtils.<Responsible, Responsible, Executable>zip(expectedStudent.getResponsibles().stream(),
+                        returnedStudent.getResponsibles().stream(), (expected, returned) -> {
+                            return () -> {
+                                Assertions.assertEquals(expected.getName(), returned.getName());
+                                Assertions.assertEquals(expected.getEmail(), returned.getEmail());
+                                Assertions.assertEquals(expected.getPhone(), returned.getPhone());
 
-                    };
-                }).toArray(Executable[]::new));
+                            };
+                        }).toArray(Executable[]::new));
 
         verify(studentRepository, times(1)).findById(anyLong());
     }
@@ -157,7 +160,8 @@ public class StudentServiceTest {
                 savedStudent.getDateOfBirth());
         Assertions.assertNotNull(savedStudent.getUser().getId());
         Assertions.assertEquals(studentRequest.getCpf(), savedStudent.getUser().getLogin());
-        Assertions.assertEquals(studentRequest.getPassword(), savedStudent.getUser().getPassword());
+        Assertions.assertTrue(new BCryptPasswordEncoder().matches(studentRequest.getPassword(),
+                savedStudent.getUser().getPassword()));
         Assertions.assertTrue(savedStudent.getUser().getUserType().contains(UserTypeEnum.ROLE_STUDENT));
         Assertions.assertAll(
                 StreamUtils
@@ -216,7 +220,7 @@ public class StudentServiceTest {
         when(studentRepository.findById(anyLong())).thenReturn(Optional.empty());
 
         Assertions.assertThrows(RuntimeException.class,
-                        () -> studentService.delete(anyLong()));
+                () -> studentService.delete(anyLong()));
 
         verify(studentRepository, times(1)).findById(anyLong());
         verify(studentRepository, times(0)).delete(any(Student.class));
@@ -247,6 +251,7 @@ public class StudentServiceTest {
                 updatedStudent.getDateOfBirth());
         Assertions.assertNotNull(updatedStudent.getUser().getId());
         Assertions.assertEquals(studentRequest.getCpf(), updatedStudent.getUser().getLogin());
+        // FIXME
         Assertions.assertEquals(studentRequest.getPassword(), updatedStudent.getUser().getPassword());
         Assertions.assertTrue(updatedStudent.getUser().getUserType().contains(UserTypeEnum.ROLE_STUDENT));
         Assertions.assertAll(StreamUtils
@@ -348,7 +353,8 @@ public class StudentServiceTest {
         student.setName("Aluno A");
         student.setCpf("807.292.180-07");
         student.setDateOfBirth(LocalDate.of(2000, 02, 22));
-        student.setUser(new User(1L, "807.292.180-07", "student1234", Set.of(UserTypeEnum.ROLE_STUDENT)));
+        student.setUser(new User(1L, "807.292.180-07", new BCryptPasswordEncoder().encode("student1234"),
+                Set.of(UserTypeEnum.ROLE_STUDENT)));
         student.setResponsibles(Set.of(new Responsible(1L, "Mãe", "mae@gmail.com", "85 9999-9999")));
         student.setAddress(new Address(1L, "Rua A", 22, "Vizinhança", "perto dali"));
 
