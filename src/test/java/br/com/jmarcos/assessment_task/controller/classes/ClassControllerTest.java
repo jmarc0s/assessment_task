@@ -34,9 +34,6 @@ import br.com.jmarcos.assessment_task.controller.DTO.classes.ClassResponseDTO;
 import br.com.jmarcos.assessment_task.model.Student;
 import br.com.jmarcos.assessment_task.model.Class;
 import br.com.jmarcos.assessment_task.service.ClassService;
-import br.com.jmarcos.assessment_task.service.exceptions.BadRequestException;
-import br.com.jmarcos.assessment_task.service.exceptions.ConflictException;
-import br.com.jmarcos.assessment_task.service.exceptions.ResourceNotFoundException;
 
 @ExtendWith(MockitoExtension.class)
 public class ClassControllerTest {
@@ -47,12 +44,13 @@ public class ClassControllerTest {
         @Mock
         private ClassService classService;
 
+        private PageRequest pageable = PageRequest.of(0, 5);
+
+        private List<Class> classList;
+
         @Test
         void shouldReturnAListOfClassesWhenSuccessful() {
-                PageRequest pageable = PageRequest.of(0, 5);
-                List<Class> classList = List.of(this.createClass());
-                PageImpl<Class> classPage = new PageImpl<>(classList);
-                when(classService.search(pageable)).thenReturn(classPage);
+                when(classService.search(pageable)).thenReturn(this.createClassPageImpl(List.of(this.createClass())));
 
                 List<ClassResponseDTO> returnedClassList = classController.search(pageable);
 
@@ -67,6 +65,7 @@ public class ClassControllerTest {
                 Assertions.assertEquals(classList.get(0).getClassStatus(), returnedClassList.get(0).getClassStatus());
                 Assertions.assertEquals(classList.get(0).getSchoolSegment(),
                                 returnedClassList.get(0).getSchoolSegment());
+                Assertions.assertNotNull(returnedClassList.get(0).getStudentsId());
                 Assertions.assertTrue(extractStudentsIdFromStudentSet(classList.get(0))
                                 .containsAll(returnedClassList.get(0).getStudentsId()));
 
@@ -75,10 +74,7 @@ public class ClassControllerTest {
 
         @Test
         void shouldReturnAnEmptyListOfClassesWhenThereAreNoClasses() {
-                PageRequest pageable = PageRequest.of(0, 5);
-                List<Class> classList = List.of();
-                PageImpl<Class> classPage = new PageImpl<>(classList);
-                when(classService.search(pageable)).thenReturn(classPage);
+                when(classService.search(pageable)).thenReturn(this.createClassPageImpl(List.of()));
 
                 List<ClassResponseDTO> returnedStudentList = classController.search(pageable);
 
@@ -113,6 +109,7 @@ public class ClassControllerTest {
                 Assertions.assertEquals(classRequestDTO.getMaxStudents(), savedClass.getMaxStudents());
                 Assertions.assertEquals(classRequestDTO.getSchoolSegment(), savedClass.getSchoolSegment());
                 Assertions.assertEquals(classRequestDTO.getTeacherHolder(), savedClass.getTeacherHolder());
+                Assertions.assertNotNull(savedClass.getStudentsId());
                 Assertions.assertTrue(classRequestDTO.getStudentsId().containsAll(savedClass.getStudentsId()));
 
                 verify(classService, times(1)).save(any(ClassRequestDTO.class));
@@ -124,7 +121,7 @@ public class ClassControllerTest {
                 newClassRequest.setTeacherHolder(null);
                 UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString("http://localhost");
                 when(classService.save(newClassRequest)).thenThrow(
-                                new BadRequestException("The class cannot be active if it does not have a teacher"));
+                                new RuntimeException("The class cannot be active if it does not have a teacher"));
 
                 Assertions.assertThrows(RuntimeException.class,
                                 () -> classController.save(newClassRequest, uriBuilder));
@@ -135,9 +132,9 @@ public class ClassControllerTest {
         @Test
         void shouldThrowsRuntimeExceptionWhenStudentNotFound() {
                 ClassRequestDTO newClassRequest = this.createClassRequestDTO();
-                when(classService.save(any(ClassRequestDTO.class)))
-                                .thenThrow(new ResourceNotFoundException("Student not found with the given id"));
                 UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString("http://localhost");
+                when(classService.save(any(ClassRequestDTO.class)))
+                                .thenThrow(new RuntimeException("Student not found with the given id"));
 
                 Assertions.assertThrows(RuntimeException.class,
                                 () -> classController.save(newClassRequest, uriBuilder));
@@ -152,7 +149,7 @@ public class ClassControllerTest {
                 student.setClassId(this.createClass());
                 UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString("http://localhost");
                 when(classService.save(any(ClassRequestDTO.class)))
-                                .thenThrow(new ConflictException("This student is already allocated to another class"));
+                                .thenThrow(new RuntimeException("This student is already allocated to another class"));
 
                 Assertions.assertThrows(RuntimeException.class,
                                 () -> classController.save(newClassRequest, uriBuilder));
@@ -179,6 +176,7 @@ public class ClassControllerTest {
                 Assertions.assertEquals(expectedClass.getMaxStudents(), returnedClass.getMaxStudents());
                 Assertions.assertEquals(expectedClass.getSchoolSegment(), returnedClass.getSchoolSegment());
                 Assertions.assertEquals(expectedClass.getTeacherHolder(), returnedClass.getTeacherHolder());
+                Assertions.assertNotNull(returnedClass.getStudentsId());
                 Assertions.assertTrue(expectedStrudentsId.containsAll(returnedClass.getStudentsId()));
 
                 verify(classService, times(1)).findById(anyLong());
@@ -187,7 +185,7 @@ public class ClassControllerTest {
         @Test
         void shouldThrowsRuntimeExceptionWhenClassNotFound() {
                 when(classService.findById(anyLong()))
-                                .thenThrow(new ResourceNotFoundException("Class not found with the given id"));
+                                .thenThrow(new RuntimeException("Class not found with the given id"));
 
                 Assertions.assertThrows(RuntimeException.class,
                                 () -> classController.searchById(anyLong()));
@@ -227,6 +225,7 @@ public class ClassControllerTest {
                 Assertions.assertEquals(classUpdateRequest.getClassShift(), updatedClassResponse.getClassShift());
                 Assertions.assertEquals(classUpdateRequest.getClassStatus(), updatedClassResponse.getClassStatus());
                 Assertions.assertEquals(classUpdateRequest.getSchoolSegment(), updatedClassResponse.getSchoolSegment());
+                Assertions.assertNotNull(updatedClassResponse.getStudentsId());
                 Assertions.assertTrue(
                                 classUpdateRequest.getStudentsId().containsAll(updatedClassResponse.getStudentsId()));
 
@@ -238,7 +237,7 @@ public class ClassControllerTest {
                 ClassRequestDTO classUpdateRequest = this.createClassRequestDTO();
                 classUpdateRequest.setTeacherHolder(null);
                 when(classService.update(any(ClassRequestDTO.class), anyLong()))
-                                .thenThrow(new BadRequestException(
+                                .thenThrow(new RuntimeException(
                                                 "The class cannot be active if it does not have a teacher"));
 
                 Assertions.assertThrows(RuntimeException.class,
@@ -251,7 +250,7 @@ public class ClassControllerTest {
         void shouldThrowsRuntimeExceptionWhenTeacherIsUnavailableOnUpdate() {
                 ClassRequestDTO classUpdateRequest = this.createClassRequestDTO();
                 when(classService.update(any(ClassRequestDTO.class), anyLong()))
-                                .thenThrow(new ConflictException(
+                                .thenThrow(new RuntimeException(
                                                 "This teacher cannot be assigned to this class this shift"));
 
                 Assertions.assertThrows(RuntimeException.class,
@@ -264,7 +263,7 @@ public class ClassControllerTest {
         void shouldThrowsRuntimeExceptionWhenClassNotFoundOnUpdate() {
                 ClassRequestDTO classUpdateRequest = this.createClassRequestDTO();
                 when(classService.update(any(ClassRequestDTO.class), anyLong()))
-                                .thenThrow(new ResourceNotFoundException("Class not found with the given id"));
+                                .thenThrow(new RuntimeException("Class not found with the given id"));
 
                 Assertions.assertThrows(RuntimeException.class,
                                 () -> classController.update(classUpdateRequest, 2L));
@@ -278,7 +277,7 @@ public class ClassControllerTest {
                 Student student = this.createStudent();
                 student.setClassId(this.createClass());
                 when(classService.update(any(ClassRequestDTO.class), anyLong()))
-                                .thenThrow(new ConflictException(
+                                .thenThrow(new RuntimeException(
                                                 "This student is already allocated to another class"));
 
                 Assertions.assertThrows(RuntimeException.class,
@@ -327,5 +326,12 @@ public class ClassControllerTest {
                                 .stream()
                                 .map(student -> student.getId())
                                 .collect(Collectors.toSet());
+        }
+
+        private PageImpl<Class> createClassPageImpl(List<Class> list) {
+                classList = list;
+                PageImpl<Class> classPage = new PageImpl<>(classList);
+
+                return classPage;
         }
 }

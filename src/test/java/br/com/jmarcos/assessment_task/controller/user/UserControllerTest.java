@@ -49,6 +49,7 @@ public class UserControllerTest {
         Assertions.assertEquals(userList.size(), returnedUserList.size());
         Assertions.assertEquals(userList.get(0).getId(), returnedUserList.get(0).getId());
         Assertions.assertEquals(userList.get(0).getLogin(), returnedUserList.get(0).getLogin());
+        Assertions.assertNotNull(returnedUserList.get(0).getUserType());
         Assertions.assertTrue(userList.get(0).getUserType().containsAll(returnedUserList.get(0).getUserType()));
 
         verify(userService, times(1)).search();
@@ -87,6 +88,7 @@ public class UserControllerTest {
 
         Assertions.assertNotNull(savedUser.getId());
         Assertions.assertEquals(userRequestDTO.getLogin(), savedUser.getLogin());
+        Assertions.assertNotNull(savedUser.getUserType());
         Assertions.assertTrue(savedUser.getUserType().contains(ROLE_SECRETARY));
 
         verify(userService, times(1)).save(any(UserRequestDTO.class));
@@ -118,6 +120,7 @@ public class UserControllerTest {
 
         Assertions.assertEquals(expectedUser.getId(), returnedUser.getId());
         Assertions.assertEquals(expectedUser.getLogin(), returnedUser.getLogin());
+        Assertions.assertNotNull(returnedUser.getUserType());
         Assertions.assertTrue(expectedUser.getUserType().containsAll(returnedUser.getUserType()));
 
         verify(userService, times(1)).findById(anyLong());
@@ -149,6 +152,7 @@ public class UserControllerTest {
 
         Assertions.assertEquals(userToBeUpdated.getId(), updatedUser.getId());
         Assertions.assertEquals(userUpdateRequest.getLogin(), updatedUser.getLogin());
+        Assertions.assertNotNull(updatedUser.getUserType());
         Assertions.assertTrue(updatedUser.getUserType().contains(ROLE_SECRETARY));
 
         verify(userService, times(1)).update(any(UserRequestDTO.class), anyLong());

@@ -1,5 +1,6 @@
 package br.com.jmarcos.assessment_task.controller.student;
 
+import static br.com.jmarcos.assessment_task.model.enums.UserTypeEnum.ROLE_STUDENT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -38,62 +39,62 @@ import br.com.jmarcos.assessment_task.model.Responsible;
 import br.com.jmarcos.assessment_task.model.Student;
 import br.com.jmarcos.assessment_task.model.User;
 import br.com.jmarcos.assessment_task.model.Class;
-import br.com.jmarcos.assessment_task.model.enums.UserTypeEnum;
 import br.com.jmarcos.assessment_task.service.StudentService;
-import br.com.jmarcos.assessment_task.service.exceptions.BadRequestException;
-import br.com.jmarcos.assessment_task.service.exceptions.ConflictException;
-import br.com.jmarcos.assessment_task.service.exceptions.ResourceNotFoundException;
 
 @ExtendWith(MockitoExtension.class)
 public class StudentControllerTest {
 
     @InjectMocks
     private StudentController studentController;
- 
+
     @Mock
     private StudentService studentService;
 
+    private PageRequest pageable = PageRequest.of(0, 5);
+
+    private List<Student> studentList;
 
     @Test
     void shouldReturnAListOfStudentsWhenSuccessful() {
-        PageRequest pageable = PageRequest.of(0, 5);
-        List<Student> studentList = List.of(this.createStudent());
-        PageImpl<Student> studentPage = new PageImpl<>(studentList);
-        when(studentService.search(pageable)).thenReturn(studentPage);
+        when(studentService.search(pageable)).thenReturn(this.createClassPageImpl(List.of(this.createStudent())));
 
         List<StudentResponseDTO> returnedStudentList = studentController.search(pageable);
 
         Assertions.assertEquals(studentList.get(0).getId(), returnedStudentList.get(0).getId());
         Assertions.assertEquals(studentList.get(0).getName(), returnedStudentList.get(0).getName());
-        Assertions.assertEquals(studentList.get(0).getAddress().getStreet(), returnedStudentList.get(0).getAddress().getStreet());
-        Assertions.assertEquals(studentList.get(0).getAddress().getNumber(), returnedStudentList.get(0).getAddress().getNumber());
-        Assertions.assertEquals(studentList.get(0).getAddress().getNeighborhood(), returnedStudentList.get(0).getAddress().getNeighborhood());
-        Assertions.assertEquals(studentList.get(0).getAddress().getComplement(), returnedStudentList.get(0).getAddress().getComplement());
+        Assertions.assertEquals(studentList.get(0).getAddress().getStreet(),
+                returnedStudentList.get(0).getAddress().getStreet());
+        Assertions.assertEquals(studentList.get(0).getAddress().getNumber(),
+                returnedStudentList.get(0).getAddress().getNumber());
+        Assertions.assertEquals(studentList.get(0).getAddress().getNeighborhood(),
+                returnedStudentList.get(0).getAddress().getNeighborhood());
+        Assertions.assertEquals(studentList.get(0).getAddress().getComplement(),
+                returnedStudentList.get(0).getAddress().getComplement());
         Assertions.assertEquals(studentList.get(0).getCpf(), returnedStudentList.get(0).getCpf());
         Assertions.assertEquals(studentList.get(0).getClassId(), returnedStudentList.get(0).getClassId());
         Assertions.assertEquals(studentList.get(0).getDateOfBirth(), returnedStudentList.get(0).getDateOfBirth());
-        Assertions.assertAll(StreamUtils.<Responsible, ResponsibleResponseDTO, Executable>zip(studentList.get(0).getResponsibles().stream(),
-        returnedStudentList.get(0).getResponsibles().stream(), (expected, returned) -> {
-            return () -> {
-                Assertions.assertEquals(expected.getName(), returned.getName());
-                Assertions.assertEquals(expected.getEmail(), returned.getEmail());
-                Assertions.assertEquals(expected.getPhone(), returned.getPhone());
+        Assertions.assertNotNull(returnedStudentList.get(0).getResponsibles());
+        Assertions.assertAll(StreamUtils
+                .<Responsible, ResponsibleResponseDTO, Executable>zip(studentList.get(0).getResponsibles().stream(),
+                        returnedStudentList.get(0).getResponsibles().stream(), (expected, returned) -> {
+                            return () -> {
+                                Assertions.assertEquals(expected.getName(), returned.getName());
+                                Assertions.assertEquals(expected.getEmail(), returned.getEmail());
+                                Assertions.assertEquals(expected.getPhone(), returned.getPhone());
 
-            };
-        }).toArray(Executable[]::new));
+                            };
+                        })
+                .toArray(Executable[]::new));
 
         verify(studentService, times(1)).search(pageable);
     }
 
     @Test
     void shouldReturnAnEmptyListOfStudentsWhenThereAreNoStudents() {
-        PageRequest pageable = PageRequest.of(0, 5);
-        List<Student> studentList = List.of();
-        PageImpl<Student> studentPage = new PageImpl<>(studentList);
-        when(studentService.search(pageable)).thenReturn(studentPage);
+        when(studentService.search(pageable)).thenReturn(this.createClassPageImpl(List.of()));
 
         List<StudentResponseDTO> returnedStudentList = studentController.search(pageable);
-        
+
         Assertions.assertTrue(returnedStudentList.isEmpty());
 
         verify(studentService, times(1)).search(pageable);
@@ -106,7 +107,8 @@ public class StudentControllerTest {
         when(studentService.save(any(StudentRequestDTO.class))).thenReturn(this.createStudent());
         UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString("http://localhost");
 
-        ResponseEntity<StudentResponseDTO> responseEntitySavedStudent = this.studentController.save(studentRequest, uriBuilder);
+        ResponseEntity<StudentResponseDTO> responseEntitySavedStudent = this.studentController.save(studentRequest,
+                uriBuilder);
 
         Assertions.assertNotNull(responseEntitySavedStudent);
         assertEquals(HttpStatus.CREATED, responseEntitySavedStudent.getStatusCode());
@@ -123,9 +125,11 @@ public class StudentControllerTest {
         Assertions.assertNull(savedStudent.getClassId());
         Assertions.assertEquals(LocalDate.parse(studentRequest.getDateOfBirth(), formatter),
                 savedStudent.getDateOfBirth());
+        Assertions.assertNotNull(savedStudent.getResponsibles());
         Assertions.assertAll(
                 StreamUtils
-                        .<ResponsibleRequestDTO, ResponsibleResponseDTO, Executable>zip(studentRequest.getResponsibles().stream(),
+                        .<ResponsibleRequestDTO, ResponsibleResponseDTO, Executable>zip(
+                                studentRequest.getResponsibles().stream(),
                                 savedStudent.getResponsibles().stream(), (request, saved) -> {
                                     return () -> {
                                         Assertions.assertEquals(request.getName(), saved.getName());
@@ -142,7 +146,8 @@ public class StudentControllerTest {
     @Test
     void shouldThorwsRuntimeExceptionWhenCpfIsAlreadyInUse() {
         StudentRequestDTO studentRequest = this.createStudentRequestDTO();
-        when(studentService.save(any(StudentRequestDTO.class))).thenThrow(new ConflictException("CPF is already in use by someone else"));
+        when(studentService.save(any(StudentRequestDTO.class)))
+                .thenThrow(new RuntimeException("CPF is already in use by someone else"));
 
         Assertions.assertThrows(RuntimeException.class,
                 () -> studentService.save(studentRequest));
@@ -154,7 +159,8 @@ public class StudentControllerTest {
     void shouldThorwsRuntimeExceptionWhenDateOfBirthIsNotValid() {
         StudentRequestDTO studentRequest = this.createStudentRequestDTO();
         studentRequest.setDateOfBirth("01/10/2100");
-        when(studentService.save(any(StudentRequestDTO.class))).thenThrow(new BadRequestException("Invalid date of birth submitted"));
+        when(studentService.save(any(StudentRequestDTO.class)))
+                .thenThrow(new RuntimeException("Invalid date of birth submitted"));
 
         Assertions.assertThrows(RuntimeException.class,
                 () -> studentService.save(studentRequest));
@@ -182,29 +188,34 @@ public class StudentControllerTest {
         Assertions.assertNotNull(expectedStudent.getAddress().getId());
         Assertions.assertEquals(expectedStudent.getAddress().getStreet(), returnedStudent.getAddress().getStreet());
         Assertions.assertEquals(expectedStudent.getAddress().getNumber(), returnedStudent.getAddress().getNumber());
-        Assertions.assertEquals(expectedStudent.getAddress().getNeighborhood(), returnedStudent.getAddress().getNeighborhood());
-        Assertions.assertEquals(expectedStudent.getAddress().getComplement(), returnedStudent.getAddress().getComplement());
+        Assertions.assertEquals(expectedStudent.getAddress().getNeighborhood(),
+                returnedStudent.getAddress().getNeighborhood());
+        Assertions.assertEquals(expectedStudent.getAddress().getComplement(),
+                returnedStudent.getAddress().getComplement());
         Assertions.assertNull(returnedStudent.getClassId());
         Assertions.assertEquals(expectedStudent.getDateOfBirth(), returnedStudent.getDateOfBirth());
         Assertions.assertEquals(expectedStudent.getUser().getLogin(), returnedStudent.getCpf());
-        Assertions.assertTrue(expectedStudent.getUser().getUserType().contains(UserTypeEnum.ROLE_STUDENT));
+        Assertions.assertTrue(expectedStudent.getUser().getUserType().contains(ROLE_STUDENT));
+        Assertions.assertNotNull(returnedStudent.getResponsibles());
+        Assertions.assertAll(StreamUtils
+                .<Responsible, ResponsibleResponseDTO, Executable>zip(expectedStudent.getResponsibles().stream(),
+                        returnedStudent.getResponsibles().stream(), (expected, returned) -> {
+                            return () -> {
+                                Assertions.assertEquals(expected.getName(), returned.getName());
+                                Assertions.assertEquals(expected.getEmail(), returned.getEmail());
+                                Assertions.assertEquals(expected.getPhone(), returned.getPhone());
 
-        Assertions.assertAll(StreamUtils.<Responsible, ResponsibleResponseDTO, Executable>zip(expectedStudent.getResponsibles().stream(),
-                returnedStudent.getResponsibles().stream(), (expected, returned) -> {
-                    return () -> {
-                        Assertions.assertEquals(expected.getName(), returned.getName());
-                        Assertions.assertEquals(expected.getEmail(), returned.getEmail());
-                        Assertions.assertEquals(expected.getPhone(), returned.getPhone());
-
-                    };
-                }).toArray(Executable[]::new));
+                            };
+                        })
+                .toArray(Executable[]::new));
 
         verify(studentService, times(1)).findById(anyLong());
     }
 
     @Test
     void shouldThrowsRuntimeExceptionWhenStudentNotFound() {
-        when(studentService.findById(anyLong())).thenThrow(new ResourceNotFoundException("Student not found with the given id"));
+        when(studentService.findById(anyLong()))
+                .thenThrow(new RuntimeException("Student not found with the given id"));
 
         Assertions.assertThrows(RuntimeException.class,
                 () -> studentService.findById(anyLong()));
@@ -219,8 +230,8 @@ public class StudentControllerTest {
         Assertions.assertNotNull(responseEntityReturnedClass);
         Assertions.assertEquals(HttpStatus.NO_CONTENT, responseEntityReturnedClass.getStatusCode());
         Assertions.assertNull(responseEntityReturnedClass.getBody());
-        
-        verify(studentService, times(1)).delete(anyLong());  
+
+        verify(studentService, times(1)).delete(anyLong());
     }
 
     @Test
@@ -230,7 +241,8 @@ public class StudentControllerTest {
         Student updatedStudentToReturn = this.createStudent();
         when(studentService.update(any(StudentRequestDTO.class), anyLong())).thenReturn(updatedStudentToReturn);
 
-        ResponseEntity<StudentResponseDTO> responseEntityUpdatedStudent = this.studentController.update(studentRequest, 2L);
+        ResponseEntity<StudentResponseDTO> responseEntityUpdatedStudent = this.studentController.update(studentRequest,
+                2L);
 
         Assertions.assertNotNull(responseEntityUpdatedStudent);
         assertEquals(HttpStatus.OK, responseEntityUpdatedStudent.getStatusCode());
@@ -248,8 +260,10 @@ public class StudentControllerTest {
         Assertions.assertNull(updatedStudent.getClassId());
         Assertions.assertEquals(LocalDate.parse(studentRequest.getDateOfBirth(), formatter),
                 updatedStudent.getDateOfBirth());
+        Assertions.assertNotNull(updatedStudent.getResponsibles());
         Assertions.assertAll(StreamUtils
-                .<ResponsibleRequestDTO, ResponsibleResponseDTO, Executable>zip(studentRequest.getResponsibles().stream(),
+                .<ResponsibleRequestDTO, ResponsibleResponseDTO, Executable>zip(
+                        studentRequest.getResponsibles().stream(),
                         updatedStudent.getResponsibles().stream(), (request, saved) -> {
                             return () -> {
                                 Assertions.assertEquals(request.getName(), saved.getName());
@@ -260,26 +274,28 @@ public class StudentControllerTest {
                         })
                 .toArray(Executable[]::new));
 
-        verify(studentService, times(1)).update(any(StudentRequestDTO.class), anyLong());  
+        verify(studentService, times(1)).update(any(StudentRequestDTO.class), anyLong());
     }
 
     @Test
     void shouldThorwsRuntimeExceptionWhenCpfIsAlreadyInUseOnUpdate() {
         StudentRequestDTO studentRequest = this.createStudentRequestDTO();
-        when(studentService.update(any(StudentRequestDTO.class), anyLong())).thenThrow(new ConflictException("This cpf is already in use by someone else"));
+        when(studentService.update(any(StudentRequestDTO.class), anyLong()))
+                .thenThrow(new RuntimeException("This cpf is already in use by someone else"));
 
         Assertions.assertThrows(RuntimeException.class,
                 () -> studentService.update(studentRequest, 2L));
 
-        verify(studentService, times(1)).update(any(StudentRequestDTO.class), anyLong());  
+        verify(studentService, times(1)).update(any(StudentRequestDTO.class), anyLong());
     }
 
     @Test
     void shouldThorwsRuntimeExceptionWhenDateOfBirthIsNotValidOnUpdate() {
         StudentRequestDTO studentRequest = this.createStudentRequestDTO();
         studentRequest.setDateOfBirth("01/10/2100");
-        when(studentService.update(any(StudentRequestDTO.class), anyLong())).thenThrow(new BadRequestException("Invalid date of birth submitted"));
-        
+        when(studentService.update(any(StudentRequestDTO.class), anyLong()))
+                .thenThrow(new RuntimeException("Invalid date of birth submitted"));
+
         Assertions.assertThrows(RuntimeException.class,
                 () -> studentService.update(studentRequest, 2L));
 
@@ -289,16 +305,17 @@ public class StudentControllerTest {
     @Test
     void shouldThorwsRuntimeExceptionWhenStudentNotFoundOnUpdate() {
         StudentRequestDTO studentRequest = this.createStudentRequestDTO();
-        when(studentService.update(any(StudentRequestDTO.class), anyLong())).thenThrow(new ResourceNotFoundException("Student not found with the given id"));
+        when(studentService.update(any(StudentRequestDTO.class), anyLong()))
+                .thenThrow(new RuntimeException("Student not found with the given id"));
 
-        Assertions.assertThrows(ResourceNotFoundException.class,
+        Assertions.assertThrows(RuntimeException.class,
                 () -> studentService.update(studentRequest, 5L));
 
         verify(studentService, times(1)).update(any(StudentRequestDTO.class), anyLong());
     }
 
     @Test
-    void shouldReturnToTheClassAssociatedWithThisStudent(){
+    void shouldReturnToTheClassAssociatedWithThisStudent() {
         User user = new User();
         Class expectedClass = this.createClass();
         when(studentService.findMyClass(any(User.class))).thenReturn(expectedClass);
@@ -317,10 +334,10 @@ public class StudentControllerTest {
         Assertions.assertNull(returnedClass.getClassStatus());
         Assertions.assertEquals(0, returnedClass.getMaxStudents());
         Assertions.assertNull(returnedClass.getSchoolSegment());
+        Assertions.assertNotNull(returnedClass.getStudentsId());
         Assertions.assertTrue(returnedClass.getStudentsId().isEmpty());
 
     }
-    
 
     StudentRequestDTO createStudentRequestDTO() {
         StudentRequestDTO student = new StudentRequestDTO();
@@ -363,7 +380,7 @@ public class StudentControllerTest {
         student.setName("Aluno A");
         student.setCpf("807.292.180-07");
         student.setDateOfBirth(LocalDate.of(2000, 02, 22));
-        student.setUser(new User(1L, "807.292.180-07", "student1234", Set.of(UserTypeEnum.ROLE_STUDENT)));
+        student.setUser(new User(1L, "807.292.180-07", "student1234", Set.of(ROLE_STUDENT)));
         student.setResponsibles(Set.of(new Responsible(1L, "Mãe", "mae@gmail.com", "85 9999-9999")));
         student.setAddress(new Address(1L, "Rua A", 22, "Vizinhança", "perto dali"));
 
@@ -379,12 +396,12 @@ public class StudentControllerTest {
         student.setCpf("274.996.840-24");
         student.setDateOfBirth(LocalDate.of(2000, 03, 10));
         student.setResponsibles(Set.of(new Responsible(1L, "Pai", "pai@gmail.com", "85 8888-8888")));
-        student.setUser(new User(2L, "274.996.840-24", "1234student", Set.of(UserTypeEnum.ROLE_STUDENT)));
+        student.setUser(new User(2L, "274.996.840-24", "1234student", Set.of(ROLE_STUDENT)));
 
         return student;
     }
 
-    Class createClass(){
+    Class createClass() {
         Class newClass = new Class();
 
         newClass.setId(1L);
@@ -392,5 +409,12 @@ public class StudentControllerTest {
         newClass.setStudents(Set.of());
 
         return newClass;
+    }
+
+    private PageImpl<Student> createClassPageImpl(List<Student> list) {
+        studentList = list;
+        PageImpl<Student> classPage = new PageImpl<>(studentList);
+
+        return classPage;
     }
 }
