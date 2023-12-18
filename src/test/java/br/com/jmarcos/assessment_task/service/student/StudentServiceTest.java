@@ -20,7 +20,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.util.StreamUtils;
@@ -48,15 +47,15 @@ public class StudentServiceTest {
     @Mock
     StudentRepository studentRepository;
 
+    private PageRequest pageable = PageRequest.of(0, 5);
+
+    private List<Student> studentList;
+
     @Test
     void shouldReturnAPageOfStudentsWhenSuccessful() {
-        PageRequest pageable = PageRequest.of(0, 5);
-        List<Student> studentList = List.of(this.createStudent());
-        PageImpl<Student> studentPage = new PageImpl<>(studentList);
-        when(studentRepository.findAll(pageable)).thenReturn(studentPage);
+        when(studentRepository.findAll(pageable)).thenReturn(createStudentPageImpl(List.of(createStudent())));
 
-        Page<Student> all = studentService.search(pageable);
-        List<Student> returnedStudentList = all.stream().toList();
+        List<Student> returnedStudentList = studentService.search(pageable).toList();
 
         assertIterableEquals(studentList, returnedStudentList);
         Assertions.assertEquals(studentList.get(0).getId(), returnedStudentList.get(0).getId());
@@ -65,7 +64,13 @@ public class StudentServiceTest {
         Assertions.assertEquals(studentList.get(0).getCpf(), returnedStudentList.get(0).getCpf());
         Assertions.assertEquals(studentList.get(0).getClassId(), returnedStudentList.get(0).getClassId());
         Assertions.assertEquals(studentList.get(0).getDateOfBirth(), returnedStudentList.get(0).getDateOfBirth());
-        Assertions.assertEquals(studentList.get(0).getResponsibles(), returnedStudentList.get(0).getResponsibles());
+        Assertions.assertNotNull(returnedStudentList.get(0).getUser().getId());
+        Assertions.assertEquals(studentList.get(0).getCpf(), returnedStudentList.get(0).getUser().getLogin());
+        Assertions.assertEquals(studentList.get(0).getUser().getPassword(),
+                returnedStudentList.get(0).getUser().getPassword());
+        Assertions.assertNotNull(returnedStudentList.get(0).getUser().getUserType());
+        Assertions.assertTrue(returnedStudentList.get(0).getUser().getUserType().contains(UserTypeEnum.ROLE_STUDENT));
+        Assertions.assertNotNull(returnedStudentList.get(0).getResponsibles());
         Assertions.assertTrue(
                 returnedStudentList.get(0).getResponsibles().containsAll(studentList.get(0).getResponsibles()));
         verify(studentRepository, times(1)).findAll(pageable);
@@ -73,13 +78,9 @@ public class StudentServiceTest {
 
     @Test
     void shouldReturnAnEmptyPageOfStudentsWhenThereAreNoStudents() {
-        PageRequest pageable = PageRequest.of(0, 5);
-        List<Student> studentList = List.of();
-        PageImpl<Student> studentPage = new PageImpl<>(studentList);
-        when(studentRepository.findAll(pageable)).thenReturn(studentPage);
+        when(studentRepository.findAll(pageable)).thenReturn(createStudentPageImpl(List.of()));
 
-        Page<Student> all = studentService.search(pageable);
-        List<Student> returnedStudentList = all.stream().toList();
+        List<Student> returnedStudentList = studentService.search(pageable).toList();
 
         Assertions.assertTrue(returnedStudentList.isEmpty());
         assertIterableEquals(studentList, returnedStudentList);
@@ -103,24 +104,28 @@ public class StudentServiceTest {
         Assertions.assertNotNull(expectedStudent.getAddress().getId());
         Assertions.assertEquals(expectedStudent.getAddress().getStreet(), returnedStudent.getAddress().getStreet());
         Assertions.assertEquals(expectedStudent.getAddress().getNumber(), returnedStudent.getAddress().getNumber());
-        Assertions.assertEquals(expectedStudent.getAddress().getNeighborhood(), returnedStudent.getAddress().getNeighborhood());
-        Assertions.assertEquals(expectedStudent.getAddress().getComplement(), returnedStudent.getAddress().getComplement());
+        Assertions.assertEquals(expectedStudent.getAddress().getNeighborhood(),
+                returnedStudent.getAddress().getNeighborhood());
+        Assertions.assertEquals(expectedStudent.getAddress().getComplement(),
+                returnedStudent.getAddress().getComplement());
         Assertions.assertNull(expectedStudent.getClassId());
         Assertions.assertEquals(expectedStudent.getDateOfBirth(), returnedStudent.getDateOfBirth());
         Assertions.assertNotNull(expectedStudent.getUser().getId());
         Assertions.assertEquals(expectedStudent.getUser().getLogin(), returnedStudent.getCpf());
         Assertions.assertEquals(expectedStudent.getUser().getPassword(), returnedStudent.getUser().getPassword());
-        Assertions.assertTrue(expectedStudent.getUser().getUserType().contains(UserTypeEnum.ROLE_STUDENT));
+        Assertions.assertNotNull(returnedStudent.getUser().getUserType());
+        Assertions.assertTrue(returnedStudent.getUser().getUserType().contains(UserTypeEnum.ROLE_STUDENT));
+        Assertions.assertNotNull(returnedStudent.getResponsibles());
+        Assertions.assertAll(
+                StreamUtils.<Responsible, Responsible, Executable>zip(expectedStudent.getResponsibles().stream(),
+                        returnedStudent.getResponsibles().stream(), (expected, returned) -> {
+                            return () -> {
+                                Assertions.assertEquals(expected.getName(), returned.getName());
+                                Assertions.assertEquals(expected.getEmail(), returned.getEmail());
+                                Assertions.assertEquals(expected.getPhone(), returned.getPhone());
 
-        Assertions.assertAll(StreamUtils.<Responsible, Responsible, Executable>zip(expectedStudent.getResponsibles().stream(),
-                returnedStudent.getResponsibles().stream(), (expected, returned) -> {
-                    return () -> {
-                        Assertions.assertEquals(expected.getName(), returned.getName());
-                        Assertions.assertEquals(expected.getEmail(), returned.getEmail());
-                        Assertions.assertEquals(expected.getPhone(), returned.getPhone());
-
-                    };
-                }).toArray(Executable[]::new));
+                            };
+                        }).toArray(Executable[]::new));
 
         verify(studentRepository, times(1)).findById(anyLong());
     }
@@ -158,7 +163,9 @@ public class StudentServiceTest {
         Assertions.assertNotNull(savedStudent.getUser().getId());
         Assertions.assertEquals(studentRequest.getCpf(), savedStudent.getUser().getLogin());
         Assertions.assertEquals(studentRequest.getPassword(), savedStudent.getUser().getPassword());
+        Assertions.assertNotNull(savedStudent.getUser().getUserType());
         Assertions.assertTrue(savedStudent.getUser().getUserType().contains(UserTypeEnum.ROLE_STUDENT));
+        Assertions.assertNotNull(savedStudent.getResponsibles());
         Assertions.assertAll(
                 StreamUtils
                         .<ResponsibleRequestDTO, Responsible, Executable>zip(studentRequest.getResponsibles().stream(),
@@ -216,7 +223,7 @@ public class StudentServiceTest {
         when(studentRepository.findById(anyLong())).thenReturn(Optional.empty());
 
         Assertions.assertThrows(RuntimeException.class,
-                        () -> studentService.delete(anyLong()));
+                () -> studentService.delete(anyLong()));
 
         verify(studentRepository, times(1)).findById(anyLong());
         verify(studentRepository, times(0)).delete(any(Student.class));
@@ -248,7 +255,9 @@ public class StudentServiceTest {
         Assertions.assertNotNull(updatedStudent.getUser().getId());
         Assertions.assertEquals(studentRequest.getCpf(), updatedStudent.getUser().getLogin());
         Assertions.assertEquals(studentRequest.getPassword(), updatedStudent.getUser().getPassword());
+        Assertions.assertNotNull(updatedStudent.getUser().getUserType());
         Assertions.assertTrue(updatedStudent.getUser().getUserType().contains(UserTypeEnum.ROLE_STUDENT));
+        Assertions.assertNotNull(updatedStudent.getResponsibles());
         Assertions.assertAll(StreamUtils
                 .<ResponsibleRequestDTO, Responsible, Executable>zip(studentRequest.getResponsibles().stream(),
                         updatedStudent.getResponsibles().stream(), (request, saved) -> {
@@ -369,4 +378,10 @@ public class StudentServiceTest {
         return student;
     }
 
+    private PageImpl<Student> createStudentPageImpl(List<Student> list) {
+        studentList = list;
+        PageImpl<Student> studentPage = new PageImpl<>(studentList);
+
+        return studentPage;
+    }
 }

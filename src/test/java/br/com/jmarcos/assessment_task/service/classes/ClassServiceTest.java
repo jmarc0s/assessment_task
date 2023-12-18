@@ -26,7 +26,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
@@ -47,41 +46,38 @@ public class ClassServiceTest {
         @Mock
         private StudentService studentService;
 
+        private PageRequest pageable = PageRequest.of(0, 5);
+
+        private List<Class> classList;
+
         @Test
         void shouldReturnAPageOfClassesWhenSuccessful() {
-                PageRequest pageable = PageRequest.of(0, 5);
-                List<Class> classList = List.of(this.createClass());
-                PageImpl<Class> classPage = new PageImpl<>(classList);
-                when(classRepository.findAll(pageable)).thenReturn(classPage);
+                when(classRepository.findAll(pageable)).thenReturn(createClassPageImpl(List.of(createClass())));
 
-                Page<Class> all = classService.search(pageable);
-                List<Class> returnedCLassList = all.stream().toList();
+                List<Class> returnedClassList = classService.search(pageable).toList();
 
-                Assertions.assertFalse(returnedCLassList.isEmpty());
-                Assertions.assertEquals(classList.get(0).getId(), returnedCLassList.get(0).getId());
-                Assertions.assertEquals(classList.get(0).getTitle(), returnedCLassList.get(0).getTitle());
-                Assertions.assertEquals(classList.get(0).getMaxStudents(), returnedCLassList.get(0).getMaxStudents());
+                Assertions.assertFalse(returnedClassList.isEmpty());
+                Assertions.assertEquals(classList.get(0).getId(), returnedClassList.get(0).getId());
+                Assertions.assertEquals(classList.get(0).getTitle(), returnedClassList.get(0).getTitle());
+                Assertions.assertEquals(classList.get(0).getMaxStudents(), returnedClassList.get(0).getMaxStudents());
                 Assertions.assertEquals(classList.get(0).getTeacherHolder(),
-                                returnedCLassList.get(0).getTeacherHolder());
-                Assertions.assertEquals(classList.get(0).getClassShift(), returnedCLassList.get(0).getClassShift());
-                Assertions.assertEquals(classList.get(0).getClassStatus(), returnedCLassList.get(0).getClassStatus());
+                                returnedClassList.get(0).getTeacherHolder());
+                Assertions.assertEquals(classList.get(0).getClassShift(), returnedClassList.get(0).getClassShift());
+                Assertions.assertEquals(classList.get(0).getClassStatus(), returnedClassList.get(0).getClassStatus());
                 Assertions.assertEquals(classList.get(0).getSchoolSegment(),
-                                returnedCLassList.get(0).getSchoolSegment());
+                                returnedClassList.get(0).getSchoolSegment());
+                Assertions.assertNotNull(returnedClassList.get(0).getStudents());
                 Assertions.assertTrue(
-                                returnedCLassList.get(0).getStudents().containsAll(classList.get(0).getStudents()));
+                                returnedClassList.get(0).getStudents().containsAll(classList.get(0).getStudents()));
 
                 verify(classRepository, times(1)).findAll(pageable);
         }
 
         @Test
         void shouldReturnAnEmptyPageOfClassesWhenThereAreNoClasses() {
-                PageRequest pageable = PageRequest.of(0, 5);
-                List<Class> classList = List.of();
-                PageImpl<Class> classPage = new PageImpl<>(classList);
-                when(classRepository.findAll(pageable)).thenReturn(classPage);
+                when(classRepository.findAll(pageable)).thenReturn(createClassPageImpl(List.of()));
 
-                Page<Class> all = classService.search(pageable);
-                List<Class> returnedStudentList = all.stream().toList();
+                List<Class> returnedStudentList = classService.search(pageable).toList();
 
                 Assertions.assertTrue(returnedStudentList.isEmpty());
                 assertIterableEquals(classList, returnedStudentList);
@@ -106,6 +102,7 @@ public class ClassServiceTest {
                 Assertions.assertEquals(expectedClass.getClassShift(), returnedClass.getClassShift());
                 Assertions.assertEquals(expectedClass.getClassStatus(), returnedClass.getClassStatus());
                 Assertions.assertEquals(expectedClass.getSchoolSegment(), returnedClass.getSchoolSegment());
+                Assertions.assertNotNull(returnedClass.getStudents());
                 Assertions.assertTrue(expectedClass.getStudents().containsAll(returnedClass.getStudents()));
 
                 verify(classRepository, times(1)).findById(anyLong());
@@ -135,6 +132,7 @@ public class ClassServiceTest {
                 Assertions.assertEquals(newClassRequest.getClassShift(), savedClass.getClassShift());
                 Assertions.assertEquals(newClassRequest.getClassStatus(), savedClass.getClassStatus());
                 Assertions.assertEquals(newClassRequest.getSchoolSegment(), savedClass.getSchoolSegment());
+                Assertions.assertNotNull(savedClass.getStudents());
                 Assertions.assertEquals(newClassRequest.getStudentsId()
                                 .stream()
                                 .findFirst()
@@ -220,17 +218,17 @@ public class ClassServiceTest {
                 verify(studentService, times(1)).updateStudent(any(Student.class));
         }
 
-    @Test
-    void shouldThrowsRuntimeExceptionWhenClassNotFoundOnDelete() {
-        when(classRepository.findById(anyLong())).thenReturn(Optional.empty());
+        @Test
+        void shouldThrowsRuntimeExceptionWhenClassNotFoundOnDelete() {
+                when(classRepository.findById(anyLong())).thenReturn(Optional.empty());
 
-        Assertions.assertThrows(RuntimeException.class,
-                        () -> classService.delete(anyLong()));
+                Assertions.assertThrows(RuntimeException.class,
+                                () -> classService.delete(anyLong()));
 
-        verify(classRepository, times(1)).findById(anyLong());
-        verify(classRepository, times(0)).delete(any(Class.class));
-        verify(studentService, times(0)).updateStudent(any(Student.class));
-    }
+                verify(classRepository, times(1)).findById(anyLong());
+                verify(classRepository, times(0)).delete(any(Class.class));
+                verify(studentService, times(0)).updateStudent(any(Student.class));
+        }
 
         @Test
         void shouldReturnAnUpdatedClassWhenSuccessful() {
@@ -249,6 +247,7 @@ public class ClassServiceTest {
                 Assertions.assertEquals(classUpdateRequest.getClassShift(), updatedClass.getClassShift());
                 Assertions.assertEquals(classUpdateRequest.getClassStatus(), updatedClass.getClassStatus());
                 Assertions.assertEquals(classUpdateRequest.getSchoolSegment(), updatedClass.getSchoolSegment());
+                Assertions.assertNotNull(updatedClass.getStudents());
                 Assertions.assertEquals(classUpdateRequest.getStudentsId()
                                 .stream()
                                 .findFirst()
@@ -387,4 +386,10 @@ public class ClassServiceTest {
                 return student;
         }
 
+        private PageImpl<Class> createClassPageImpl(List<Class> list) {
+                classList = list;
+                PageImpl<Class> classPage = new PageImpl<>(classList);
+
+                return classPage;
+        }
 }
