@@ -8,10 +8,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static br.com.jmarcos.assessment_task.model.enums.ClassShiftEnum.MORNINGSHIFT;
-import static br.com.jmarcos.assessment_task.model.enums.ClassShiftEnum.AFTERNOONSHIFT;
 import static br.com.jmarcos.assessment_task.model.enums.ClassStatusEnum.ACTIVE;
-import static br.com.jmarcos.assessment_task.model.enums.ClassStatusEnum.PLANNING;
-import static br.com.jmarcos.assessment_task.model.enums.SchoolSegmentEnum.SECONDCHILDISH;
 import static br.com.jmarcos.assessment_task.model.enums.SchoolSegmentEnum.FIFTHCHILDISH;
 
 import java.net.URI;
@@ -245,7 +242,7 @@ public class ClassControllerTest {
                                                 "The class cannot be active if it does not have a teacher"));
 
                 Assertions.assertThrows(RuntimeException.class,
-                                () -> classService.update(classUpdateRequest, 2L));
+                                () -> classController.update(classUpdateRequest, 2L));
 
                 verify(classService, times(1)).update(any(ClassRequestDTO.class), anyLong());
         }
@@ -258,7 +255,7 @@ public class ClassControllerTest {
                                                 "This teacher cannot be assigned to this class this shift"));
 
                 Assertions.assertThrows(RuntimeException.class,
-                                () -> classService.update(classUpdateRequest, 2L));
+                                () -> classController.update(classUpdateRequest, 2L));
 
                 verify(classService, times(1)).update(any(ClassRequestDTO.class), anyLong());
         }
@@ -270,7 +267,7 @@ public class ClassControllerTest {
                                 .thenThrow(new ResourceNotFoundException("Class not found with the given id"));
 
                 Assertions.assertThrows(RuntimeException.class,
-                                () -> classService.update(classUpdateRequest, 2L));
+                                () -> classController.update(classUpdateRequest, 2L));
 
                 verify(classService, times(1)).update(any(ClassRequestDTO.class), anyLong());
         }
@@ -285,7 +282,7 @@ public class ClassControllerTest {
                                                 "This student is already allocated to another class"));
 
                 Assertions.assertThrows(RuntimeException.class,
-                                () -> classService.update(classUpdateRequest, 2L));
+                                () -> classController.update(classUpdateRequest, 2L));
 
                 verify(classService, times(1)).update(any(ClassRequestDTO.class), anyLong());
         }
@@ -317,27 +314,6 @@ public class ClassControllerTest {
                 newClass.setStudents(Set.of(this.createStudent()));
 
                 return newClass;
-        }
-
-        Class createClassToBeUpdated() {
-                Class newClass = new Class();
-
-                newClass.setId(2L);
-                newClass.setTitle("Turma para ser atualizada");
-                newClass.setClassShift(AFTERNOONSHIFT);
-                newClass.setClassStatus(PLANNING);
-                newClass.setTeacherHolder("professor a ser atualizado");
-                newClass.setSchoolSegment(SECONDCHILDISH);
-                newClass.setMaxStudents(40);
-                newClass.setStudents(Set.of(this.createStudentToBeUpdate()));
-
-                return newClass;
-        }
-
-        private Student createStudentToBeUpdate() {
-                Student student = new Student();
-                student.setId(2L);
-                return student;
         }
 
         private Student createStudent() {
